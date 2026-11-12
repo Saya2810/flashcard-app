@@ -1,0 +1,52 @@
+{
+  "name": "persisch-karten",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Persian–German flashcard PWA for iPhone with FSRS spaced repetition, problem-word tracking and offline storage",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Saya2810/flashcard-app.git"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "vite",
+    "dev:netz": "vite --host",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@fontsource/vazirmatn": "^5.3.0",
+    "dexie": "^4.4.7",
+    "dexie-react-hooks": "^4.4.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.30.6",
+    "ts-fsrs": "^5.4.2"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.0",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@types/node": "^26.6.6",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^4.7.0",
+    "autoprefixer": "^10.6.2",
+    "fake-indexeddb": "^6.2.8",
+    "jsdom": "^26.1.0",
+    "postcss": "^8.5.32",
+    "tailwindcss": "^3.4.19",
+    "typescript": "^5.9.3",
+    "vite": "^6.4.6",
+    "vite-plugin-pwa": "^2.0.0",
+    "vitest": "^3.2.7"
+  }
+}
