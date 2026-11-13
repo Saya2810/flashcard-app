@@ -1,6 +1,7 @@
 import { useEffect, useSyncExternalStore, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PRIORITY_LABEL, STATUS_LABEL, type DeckColor, type Status } from '../types';
+import { t } from '../i18n';
 
 const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(' ');
 export { cx };
@@ -35,6 +36,8 @@ const PATHS: Record<string, string> = {
   keyboard: 'M3.500 7h17v10h-17zM7 10.500h.01M10.500 10.500h.01M14 10.500h.01M17 10.500h.01M7.500 14h9',
   palette: 'M12 3.500a8.500 8.500 0 1 0 0 17c1.200 0 1.800-.8 1.800-1.700 0-1.300-1.300-1.600-1.300-2.900 0-1 .8-1.700 1.900-1.700h2.100a3.500 3.500 0 0 0 3.500-3.500C20 6.500 16.500 3.500 12 3.500ZM7.500 12h.01M9 8h.01M14 7.500h.01',
   table: 'M4.500 5.500h15v13h-15zM4.500 10h15M4.500 14.500h15M10 5.500v13',
+  'chevron-up': 'M6 14.500 12 8.500l6 6',
+  'chevron-down': 'M6 9.500l6 6 6-6',
 };
 export function Icon({ name, size = 22, className }: { name: keyof typeof PATHS | string; size?: number; className?: string }) {
   return (
@@ -52,7 +55,7 @@ export function Page({ title, back, actions, children, subtitle }: { title: stri
       <header className="safe-top sticky top-0 z-20 -mx-4 mb-2 bg-bg/90 px-4 pb-2 backdrop-blur">
         <div className="flex min-h-[2.75rem] items-center gap-1">
           {back && (
-            <button aria-label="Zurück" className="-ml-2 grid h-11 w-11 place-items-center rounded-full text-accent" onClick={() => (typeof back === 'string' ? nav(back) : nav(-1))}>
+            <button aria-label={t("Zurück")} className="-ml-2 grid h-11 w-11 place-items-center rounded-full text-accent" onClick={() => (typeof back === 'string' ? nav(back) : nav(-1))}>
               <Icon name="back" />
             </button>
           )}
@@ -103,13 +106,13 @@ export function IconButton({ icon, label, className, ...rest }: { icon: string; 
   );
 }
 
-export function Segmented<T extends string>({ value, onChange, options, label }: { value: T; onChange: (v: T) => void; options: { value: T; label: string }[]; label: string }) {
+export function Segmented<T extends string>({ value, onChange, options, label }: { value: T; onChange: (v: T) => void; options: { value: T; label: string; raw?: boolean }[]; label: string }) {
   return (
     <div role="radiogroup" aria-label={label} className="flex rounded-2xl bg-sunken p-1">
       {options.map((o) => (
         <button key={o.value} type="button" role="radio" aria-checked={value === o.value} onClick={() => onChange(o.value)}
           className={cx('min-h-[2.5rem] flex-1 rounded-xl px-2 text-sm font-semibold transition', value === o.value ? 'bg-surface text-ink shadow-sm' : 'text-muted')}>
-          {o.label}
+          {o.raw ? o.label : t(o.label)}
         </button>
       ))}
     </div>
@@ -132,15 +135,15 @@ export function Stars({ value, onChange, size = 28 }: { value: number; onChange?
       <path fill="currentColor" d="M12 3.2l2.6 5.6 6.1.7-4.5 4.2 1.2 6-5.400-3-5.400 3 1.200-6L3.300 9.500l6.100-.7L12 3.200Z" />
     </svg>
   );
-  if (!onChange) return <span className="inline-flex" role="img" aria-label={`Priorität ${value} von 5: ${PRIORITY_LABEL[value]}`}>{[1, 2, 3, 4, 5].map((i) => <span key={i}>{star(i)}</span>)}</span>;
+  if (!onChange) return <span className="inline-flex" role="img" aria-label={t('Priorität {n} von 5: {label}', { n: value, label: t(PRIORITY_LABEL[value]) })}>{[1, 2, 3, 4, 5].map((i) => <span key={i}>{star(i)}</span>)}</span>;
   return (
-    <div role="radiogroup" aria-label="Priorität" className="flex items-center">
+    <div role="radiogroup" aria-label={t("Priorität")} className="flex items-center">
       {[1, 2, 3, 4, 5].map((i) => (
-        <button key={i} type="button" role="radio" aria-checked={value === i} aria-label={`Priorität ${i}: ${PRIORITY_LABEL[i]}`} onClick={() => onChange(i)} className="grid h-11 w-10 place-items-center">
+        <button key={i} type="button" role="radio" aria-checked={value === i} aria-label={t('Priorität {n}: {label}', { n: i, label: t(PRIORITY_LABEL[i]) })} onClick={() => onChange(i)} className="grid h-11 w-10 place-items-center">
           {star(i)}
         </button>
       ))}
-      <span className="ml-2 text-sm text-muted">{PRIORITY_LABEL[value]}</span>
+      <span className="ml-2 text-sm text-muted">{t(PRIORITY_LABEL[value])}</span>
     </div>
   );
 }
@@ -153,7 +156,7 @@ export function StatusBadge({ status }: { status: Status }) {
   return (
     <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted">
       <span className="h-2.5 w-2.5 rounded-full" style={{ background: STATUS_STYLE[status] }} />
-      {STATUS_LABEL[status]}
+      {t(STATUS_LABEL[status])}
     </span>
   );
 }
@@ -215,11 +218,11 @@ export function Sheet({ open, onClose, title, children, footer }: { open: boolea
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center" role="dialog" aria-modal="true" aria-label={title}>
-      <button aria-label="Schließen" className="absolute inset-0 bg-black/45" onClick={onClose} />
+      <button aria-label={t("Schließen")} className="absolute inset-0 bg-black/45" onClick={onClose} />
       <div className="sheet-panel relative flex max-h-[88vh] w-full max-w-xl flex-col rounded-t-[1.75rem] bg-bg shadow-card">
         <div className="flex items-center justify-between px-5 pb-2 pt-4">
           <h2 className="text-lg font-bold">{title}</h2>
-          <IconButton icon="x" label="Schließen" onClick={onClose} className="-mr-2 text-muted" />
+          <IconButton icon="x" label={t("Schließen")} onClick={onClose} className="-mr-2 text-muted" />
         </div>
         <div className="overflow-y-auto px-5 pb-4">{children}</div>
         {footer && <div className="safe-bottom border-t border-line px-5 pt-3">{footer}</div>}
@@ -233,14 +236,14 @@ export function Confirm({ open, title, text, confirmLabel, danger, onConfirm, on
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 grid place-items-center p-6" role="alertdialog" aria-modal="true" aria-label={title}>
-      <button aria-label="Abbrechen" className="absolute inset-0 bg-black/45" onClick={onCancel} />
+      <button aria-label={t("Abbrechen")} className="absolute inset-0 bg-black/45" onClick={onCancel} />
       <div className="sheet-panel relative w-full max-w-sm rounded-card bg-surface p-5 shadow-card">
         <h2 className="text-lg font-bold">{title}</h2>
         {text && <div className="mt-2 text-sm text-muted">{text}</div>}
         {children}
         <div className="mt-5 flex flex-col gap-2">
           <Button variant={danger ? 'bad' : 'primary'} onClick={onConfirm}>{confirmLabel}</Button>
-          <Button variant="soft" onClick={onCancel}>Abbrechen</Button>
+          <Button variant="soft" onClick={onCancel}>{t('Abbrechen')}</Button>
         </div>
       </div>
     </div>
@@ -278,10 +281,10 @@ export function Stepper({ value, onChange, min, max, step = 1, label }: { value:
   const set = (v: number) => onChange(Math.min(max, Math.max(min, v)));
   return (
     <div className="flex items-center gap-1" role="group" aria-label={label}>
-      <button type="button" aria-label={`${label} verringern`} className="grid h-11 w-11 place-items-center rounded-full bg-sunken text-xl font-semibold disabled:opacity-40" disabled={value <= min} onClick={() => set(value - step)}>−</button>
+      <button type="button" aria-label={t('{label} verringern', { label })} className="grid h-11 w-11 place-items-center rounded-full bg-sunken text-xl font-semibold disabled:opacity-40" disabled={value <= min} onClick={() => set(value - step)}>−</button>
       <input aria-label={label} inputMode="numeric" className="h-11 w-16 rounded-xl border border-line bg-surface text-center font-semibold" value={value}
         onChange={(e) => { const n = parseInt(e.target.value.replace(/\D/g, ''), 10); set(Number.isFinite(n) ? n : min); }} />
-      <button type="button" aria-label={`${label} erhöhen`} className="grid h-11 w-11 place-items-center rounded-full bg-sunken text-xl font-semibold disabled:opacity-40" disabled={value >= max} onClick={() => set(value + step)}>+</button>
+      <button type="button" aria-label={t('{label} erhöhen', { label })} className="grid h-11 w-11 place-items-center rounded-full bg-sunken text-xl font-semibold disabled:opacity-40" disabled={value >= max} onClick={() => set(value + step)}>+</button>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import type { Card, Deck, Direction } from '../types';
 import { AnswerDiff } from './AnswerDiff';
 import { baseSize, RichText, sideLook } from './RichText';
 import { cx } from './ui';
+import { t } from '../i18n';
 
 export interface FlashcardProps {
   card: Card;
@@ -45,7 +46,7 @@ export function Flashcard({ card, deck, direction, flipped, onFlip, animations =
   return (
     <div
       role="button" tabIndex={0} data-flipped={flipped} data-testid="flashcard"
-      aria-label={flipped ? 'Karte zurückdrehen' : 'Karte umdrehen und Lösung zeigen'}
+      aria-label={flipped ? t('Karte zurückdrehen') : t('Karte umdrehen und Lösung zeigen')}
       className={cx('fc w-full cursor-pointer select-none outline-offset-4', still && 'no-anim')}
       onClick={(e) => { if ((e.target as HTMLElement).closest('a')) return; onFlip(); }}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onFlip(); } }}
@@ -53,12 +54,12 @@ export function Flashcard({ card, deck, direction, flipped, onFlip, animations =
       <div className="fc-inner">
         <Face side="front" hidden={flipped} label={qSide.label}>
           <RichText text={question} rich={deck.rich} look={sideLook(qSide)} baseRem={baseSize(question, deck.rich)} className="w-full" testId="question" />
-          {typed === null && <div className="mt-2 text-sm text-muted">Tippen zum Umdrehen</div>}
+          {typed === null && <div className="mt-2 text-sm text-muted">{t('Tippen zum Umdrehen')}</div>}
         </Face>
         <Face side="back" hidden={!flipped} label={aSide.label}>
           <RichText text={answer} rich={deck.rich} look={sideLook(aSide)} baseRem={baseSize(answer, deck.rich)} className="w-full" testId="answer" />
           {fwd && card.altBack.length > 0 && (
-            <div className="text-sm text-muted">auch: <span dir="auto" lang={aSide.lang || undefined}>{card.altBack.join(', ')}</span></div>
+            <div className="text-sm text-muted">{t('auch:')} <span dir="auto" lang={aSide.lang || undefined}>{card.altBack.join(', ')}</span></div>
           )}
           {!fwd && <div className="text-sm text-muted" dir="auto">{qSide.label}: <span lang={qSide.lang || undefined}>{card.back}</span></div>}
           {typed !== null && flipped && (
@@ -74,7 +75,7 @@ export function Flashcard({ card, deck, direction, flipped, onFlip, animations =
               ))}
               {card.notes && (
                 <div>
-                  <dt className="text-xs font-semibold text-muted">Notiz</dt>
+                  <dt className="text-xs font-semibold text-muted">{t('Notiz')}</dt>
                   <dd><RichText text={card.notes} rich={deck.rich} look={{ dir: 'auto' }} baseRem={0.9} className="text-muted" /></dd>
                 </div>
               )}

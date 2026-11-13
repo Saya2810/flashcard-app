@@ -1,6 +1,7 @@
 import { newId } from '../lib/text';
 import type { Media } from '../types';
 import { db, type AppDB } from './db';
+import { t } from '../i18n';
 
 export const MAX_SIDE = 1400;
 
@@ -38,7 +39,7 @@ const readAsDataUrl = (b: Blob) => new Promise<string>((res, rej) => {
 const loadImage = (src: string) => new Promise<HTMLImageElement>((res, rej) => {
   const i = new Image();
   i.onload = () => res(i);
-  i.onerror = () => rej(new Error('Bild konnte nicht gelesen werden.'));
+  i.onerror = () => rej(new Error(t('Bild konnte nicht gelesen werden.')));
   i.src = src;
 });
 

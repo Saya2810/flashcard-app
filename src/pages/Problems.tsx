@@ -10,6 +10,7 @@ import { loadProblemRows, sortProblems, type ProblemRow, type ProblemSort } from
 import type { SessionConfig } from '../types';
 import { SectionTabs } from './shared';
 import { LineText } from './CardList';
+import { t } from '../i18n';
 
 const SORTS: { value: ProblemSort; label: string }[] = [
   { value: 'errors', label: 'Meiste Fehler' },
@@ -23,10 +24,10 @@ function Table({ rows, selected, onToggle }: { rows: ProblemRow[]; selected: Set
     <table className="w-full table-fixed text-sm">
       <thead>
         <tr className="text-left text-xs text-muted">
-          <th className="w-9 py-1.5"><span className="sr-only">Auswahl</span></th>
-          <th className="py-1.5 font-semibold">Karte</th>
-          <th className="w-14 py-1.5 text-right font-semibold">Fehler</th>
-          <th className="w-16 py-1.5 pl-2 text-right font-semibold">Quote</th>
+          <th className="w-9 py-1.5"><span className="sr-only">{t('Auswahl')}</span></th>
+          <th className="py-1.5 font-semibold">{t('Karte')}</th>
+          <th className="w-14 py-1.5 text-right font-semibold">{t('Fehler')}</th>
+          <th className="w-16 py-1.5 pl-2 text-right font-semibold">{t('Quote')}</th>
         </tr>
       </thead>
       <tbody>
@@ -38,7 +39,7 @@ function Table({ rows, selected, onToggle }: { rows: ProblemRow[]; selected: Set
           return (
             <tr key={r.state.id} className="border-t border-line align-middle">
               <td className="py-1">
-                <button type="button" role="checkbox" aria-checked={on} aria-label={`${plainText(r.card.front)} auswählen`} onClick={() => onToggle(r.card.id)} className="grid h-11 w-9 place-items-center">
+                <button type="button" role="checkbox" aria-checked={on} aria-label={t('{name} auswählen', { name: plainText(r.card.front) })} onClick={() => onToggle(r.card.id)} className="grid h-11 w-9 place-items-center">
                   <span className={cx('grid h-6 w-6 place-items-center rounded-full border-2', on ? 'border-accent bg-accent text-on-accent' : 'border-line')}>{on && <Icon name="check" size={14} />}</span>
                 </button>
               </td>
@@ -79,25 +80,25 @@ export default function Problems() {
   };
 
   return (
-    <Page title="Stapel">
+    <Page title={t("Stapel")}>
       <SectionTabs active="problem" />
       {decks.length > 1 && (
         <div className="-mx-4 mb-3 flex gap-2 overflow-x-auto px-4 pb-1">
-          <Chip active={!deckId} onClick={() => setDeckId('')}>Alle Stapel</Chip>
+          <Chip active={!deckId} onClick={() => setDeckId('')}>{t('Alle Stapel')}</Chip>
           {decks.map((d) => <Chip key={d.id} active={deckId === d.id} onClick={() => setDeckId(d.id)}><span className="inline-flex items-center gap-1.5"><DeckDot color={d.color} size={9} />{d.name}</span></Chip>)}
         </div>
       )}
       {data && problems.length === 0 && watch.length === 0 ? (
-        <EmptyState icon="check" title="Keine Problemkarten" text="Karten, die du wiederholt falsch beantwortest, werden hier automatisch gesammelt." />
+        <EmptyState icon="check" title={t("Keine Problemkarten")} text={t("Karten, die du wiederholt falsch beantwortest, werden hier automatisch gesammelt.")} />
       ) : (
         <div className="space-y-4 pb-24">
           {problems.length > 0 && (
             <>
-              <Button size="lg" className="w-full" onClick={() => start()} data-testid="practice-problems">Problemkarten üben</Button>
+              <Button size="lg" className="w-full" onClick={() => start()} data-testid="practice-problems">{t('Problemkarten üben')}</Button>
               <label className="flex items-center justify-between gap-3 text-sm">
-                <span className="font-semibold">Sortieren nach</span>
+                <span className="font-semibold">{t('Sortieren nach')}</span>
                 <select value={sort} onChange={(e) => setSort(e.target.value as ProblemSort)} className="min-h-[2.5rem] rounded-full border border-line bg-surface px-3 text-sm font-medium">
-                  {SORTS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+                  {SORTS.map((s) => <option key={s.value} value={s.value}>{t(s.label)}</option>)}
                 </select>
               </label>
               <Card className="!px-3" data-testid="problem-table"><Table rows={problems} selected={selected} onToggle={toggle} /></Card>
@@ -105,8 +106,8 @@ export default function Problems() {
           )}
           {watch.length > 0 && (
             <Card className="!px-3">
-              <h2 className="px-1 font-bold">Noch zu wenig Daten</h2>
-              <p className="mb-1 px-1 text-xs text-muted">Diese Karten hatten Fehler, wurden aber weniger als {MIN_REVIEWS}-mal gelernt. Ihre Fehlerquote ist noch nicht aussagekräftig.</p>
+              <h2 className="px-1 font-bold">{t('Noch zu wenig Daten')}</h2>
+              <p className="mb-1 px-1 text-xs text-muted">{t('Diese Karten hatten Fehler, wurden aber weniger als {n}-mal gelernt. Ihre Fehlerquote ist noch nicht aussagekräftig.', { n: MIN_REVIEWS })}</p>
               <Table rows={watch} selected={selected} onToggle={toggle} />
             </Card>
           )}
@@ -114,7 +115,7 @@ export default function Problems() {
       )}
       {selected.size > 0 && (
         <div className="fixed inset-x-0 z-30 mx-auto max-w-xl px-4" style={{ bottom: 'calc(4.5rem + env(safe-area-inset-bottom))' }}>
-          <Button className="w-full shadow-lift" onClick={() => start([...selected])} data-testid="practice-selected">Auswahl üben ({selected.size})</Button>
+          <Button className="w-full shadow-lift" onClick={() => start([...selected])} data-testid="practice-selected">{t('Auswahl üben ({n})', { n: selected.size })}</Button>
         </div>
       )}
     </Page>

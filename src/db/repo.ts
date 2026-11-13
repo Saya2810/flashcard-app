@@ -2,6 +2,7 @@ import { DEFAULT_SETTINGS, defaultSide, type AppSettings, type Card, type Custom
 import { dupKey, newId } from '../lib/text';
 import { dueForPriority } from '../srs/scheduler';
 import { db, type AppDB } from './db';
+import { t } from '../i18n';
 
 export class ValidationError extends Error {}
 
@@ -28,15 +29,15 @@ export interface DeckInput {
 
 export function buildDeck(input: DeckInput, now = Date.now()): Deck {
   const name = input.name.trim();
-  if (!name) throw new ValidationError('Bitte einen Namen für den Stapel eintragen.');
+  if (!name) throw new ValidationError(t('Bitte einen Namen für den Stapel eintragen.'));
   return {
     id: newId(),
     name,
     subject: input.subject?.trim() ?? '',
     description: input.description?.trim() ?? '',
     color: input.color ?? 'rose',
-    front: { ...defaultSide('Vorderseite'), ...input.front },
-    back: { ...defaultSide('Rückseite'), ...input.back },
+    front: { ...defaultSide(t('Vorderseite')), ...input.front },
+    back: { ...defaultSide(t('Rückseite')), ...input.back },
     reverse: input.reverse ?? false,
     rich: input.rich ?? true,
     fields: input.fields ?? [],
@@ -48,7 +49,7 @@ export function buildDeck(input: DeckInput, now = Date.now()): Deck {
 
 export async function addDeck(input: DeckInput, database: AppDB = db): Promise<Deck> {
   const d = buildDeck(input);
-  if (await database.decks.where('name').equals(d.name).count()) throw new ValidationError(`Den Stapel „${d.name}“ gibt es schon.`);
+  if (await database.decks.where('name').equals(d.name).count()) throw new ValidationError(t('Den Stapel „{v}“ gibt es schon.', { v: d.name }));
   await database.decks.add(d);
   return d;
 }
@@ -56,19 +57,27 @@ export async function addDeck(input: DeckInput, database: AppDB = db): Promise<D
 export async function updateDeck(id: string, patch: Partial<Omit<Deck, 'id'>>, database: AppDB = db): Promise<void> {
   if (patch.name !== undefined) {
     patch.name = patch.name.trim();
-    if (!patch.name) throw new ValidationError('Bitte einen Namen für den Stapel eintragen.');
+    if (!patch.name) throw new ValidationError(t('Bitte einen Namen für den Stapel eintragen.'));
     const clash = await database.decks.where('name').equals(patch.name).first();
-    if (clash && clash.id !== id) throw new ValidationError(`Den Stapel „${patch.name}“ gibt es schon.`);
+    if (clash && clash.id !== id) throw new ValidationError(t('Den Stapel „{v}“ gibt es schon.', { v: patch.name }));
   }
   await database.decks.update(id, patch);
+}
+
+/** Verbs with the learning history of all their forms (conjugation trainer). Call inside a transaction on these tables. */
+export async function deleteVerbRows(ids: string[], d: AppDB = db): Promise<void> {
+  await d.formReviews.where('verbId').anyOf(ids).delete();
+  await d.formStates.where('verbId').anyOf(ids).delete();
+  await d.verbs.bulkDelete(ids);
 }
 
 /** Deletes a deck with all its lessons, cards, states and review history. */
 export async function deleteDeck(id: string, database: AppDB = db): Promise<void> {
   const d = database;
-  await d.transaction('rw', [d.decks, d.lessons, d.cards, d.states, d.reviews], async () => {
+  await d.transaction('rw', [d.decks, d.lessons, d.cards, d.states, d.reviews, d.verbs, d.formStates, d.formReviews], async () => {
     const ids = await d.cards.where('deckId').equals(id).primaryKeys();
     await deleteCards(ids, d);
+    await deleteVerbRows(await d.verbs.where('deckId').equals(id).primaryKeys(), d);
     await d.lessons.where('deckId').equals(id).delete();
     await d.decks.delete(id);
   });
@@ -88,8 +97,8 @@ export async function deckIdByName(name: string, cache: Map<string, string>, dat
 
 export async function addLesson(deckId: string, name: string, description = '', database: AppDB = db): Promise<Lesson> {
   const n = name.trim();
-  if (!n) throw new ValidationError('Bitte einen Namen für die Lektion eintragen.');
-  if (await database.lessons.where('[deckId+name]').equals([deckId, n]).count()) throw new ValidationError(`Die Lektion „${n}“ gibt es in diesem Stapel schon.`);
+  if (!n) throw new ValidationError(t('Bitte einen Namen für die Lektion eintragen.'));
+  if (await database.lessons.where('[deckId+name]').equals([deckId, n]).count()) throw new ValidationError(t('Die Lektion „{v}“ gibt es in diesem Stapel schon.', { v: n }));
   const lesson: Lesson = { id: newId(), deckId, name: n, description: description.trim(), createdAt: Date.now(), lastPracticedAt: 0 };
   await database.lessons.add(lesson);
   return lesson;
@@ -97,21 +106,22 @@ export async function addLesson(deckId: string, name: string, description = '', 
 
 export async function updateLesson(id: string, name: string, description: string, database: AppDB = db): Promise<void> {
   const n = name.trim();
-  if (!n) throw new ValidationError('Bitte einen Namen für die Lektion eintragen.');
+  if (!n) throw new ValidationError(t('Bitte einen Namen für die Lektion eintragen.'));
   const lesson = await database.lessons.get(id);
   if (!lesson) return;
   const clash = await database.lessons.where('[deckId+name]').equals([lesson.deckId, n]).first();
-  if (clash && clash.id !== id) throw new ValidationError(`Die Lektion „${n}“ gibt es in diesem Stapel schon.`);
+  if (clash && clash.id !== id) throw new ValidationError(t('Die Lektion „{v}“ gibt es in diesem Stapel schon.', { v: n }));
   await database.lessons.update(id, { name: n, description: description.trim() });
 }
 
 /** withCards=false (default): cards are kept and end up without a lesson. */
 export async function deleteLesson(id: string, withCards = false, database: AppDB = db): Promise<void> {
   const d = database;
-  await d.transaction('rw', [d.lessons, d.cards, d.states, d.reviews], async () => {
+  await d.transaction('rw', [d.lessons, d.cards, d.states, d.reviews, d.verbs, d.formStates, d.formReviews], async () => {
     const ids = await d.cards.where('lessonId').equals(id).primaryKeys();
-    if (withCards) await deleteCards(ids, d);
-    else await d.cards.where('id').anyOf(ids).modify({ lessonId: '' });
+    const verbIds = await d.verbs.where('lessonId').equals(id).primaryKeys();
+    if (withCards) { await deleteCards(ids, d); await deleteVerbRows(verbIds, d); }
+    else { await d.cards.where('id').anyOf(ids).modify({ lessonId: '' }); await d.verbs.where('id').anyOf(verbIds).modify({ lessonId: '' }); }
     await d.lessons.delete(id);
   });
 }
@@ -146,9 +156,9 @@ export interface CardInput {
 export function buildCard(input: CardInput, now = Date.now()): Card {
   const front = input.front.trim();
   const back = input.back.trim();
-  if (!input.deckId) throw new ValidationError('Bitte einen Stapel wählen.');
-  if (!front) throw new ValidationError('Bitte die Vorderseite ausfüllen.');
-  if (!back) throw new ValidationError('Bitte die Rückseite ausfüllen.');
+  if (!input.deckId) throw new ValidationError(t('Bitte einen Stapel wählen.'));
+  if (!front) throw new ValidationError(t('Bitte die Vorderseite ausfüllen.'));
+  if (!back) throw new ValidationError(t('Bitte die Rückseite ausfüllen.'));
   const fields: Record<string, string> = {};
   for (const [k, v] of Object.entries(input.fields ?? {})) if (v?.trim()) fields[k] = v.trim();
   return {
@@ -183,7 +193,7 @@ export async function updateCard(id: string, input: CardInput, database: AppDB =
   const d = database;
   await d.transaction('rw', [d.cards, d.states, d.reviews], async () => {
     const old = await d.cards.get(id);
-    if (!old) throw new ValidationError('Diese Karte gibt es nicht mehr.');
+    if (!old) throw new ValidationError(t('Diese Karte gibt es nicht mehr.'));
     await d.cards.update(id, {
       deckId: b.deckId, lessonId: b.lessonId, front: b.front, back: b.back, altBack: b.altBack, fields: b.fields,
       notes: b.notes, tags: b.tags, frontKey: b.frontKey, updatedAt: Date.now(),

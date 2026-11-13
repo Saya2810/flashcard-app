@@ -1,7 +1,7 @@
 import { db, stateId, type AppDB } from '../db/db';
 import { dayKey } from '../lib/dates';
 import { newId } from '../lib/text';
-import { STATUS_ORDER, type DayStats, type Direction, type ReviewKind, type SchedState, type Status } from '../types';
+import { STATUS_ORDER, type DayStats, type Direction, type ReviewKind, type SchedLike, type SchedState, type Status } from '../types';
 import { cardStatus, isProblem, statusOf } from './metrics';
 import { retrievability, schedule } from './scheduler';
 
@@ -13,7 +13,7 @@ export async function statusCounts(database: AppDB = db): Promise<Record<Status,
 }
 
 /** Advance the counters (pure function – also used when recomputing from history). */
-export function applyCounters(prev: SchedState | undefined, correct: boolean, now: number) {
+export function applyCounters(prev: SchedLike | undefined, correct: boolean, now: number) {
   const total = (prev?.total ?? 0) + 1;
   const curCorrect = correct ? (prev?.curCorrect ?? 0) + 1 : 0;
   const curIncorrect = correct ? 0 : (prev?.curIncorrect ?? 0) + 1;

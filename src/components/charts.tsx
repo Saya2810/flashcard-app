@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { Card, Icon, cx } from './ui';
+import { t } from '../i18n';
 
 export interface Series { name: string; color: string }
 export interface Datum { label: string; values: number[] }
@@ -21,7 +22,7 @@ export function ChartCard({ title, hint, series, table, children }: { title: str
           <h3 className="font-bold">{title}</h3>
           {hint && <p className="text-xs text-muted">{hint}</p>}
         </div>
-        <button type="button" aria-pressed={asTable} aria-label={asTable ? 'Als Diagramm zeigen' : 'Als Tabelle zeigen'} onClick={() => setAsTable(!asTable)}
+        <button type="button" aria-pressed={asTable} aria-label={asTable ? t('Als Diagramm zeigen') : t('Als Tabelle zeigen')} onClick={() => setAsTable(!asTable)}
           className={cx('grid h-10 w-10 place-items-center rounded-full', asTable ? 'bg-accent text-on-accent' : 'text-muted')}>
           <Icon name={asTable ? 'chart' : 'table'} size={18} />
         </button>
@@ -88,8 +89,8 @@ export function BarChart({ data, series, labelEvery }: { data: Datum[]; series: 
   const every = labelEvery ?? Math.ceil(data.length / 7);
   return (
     <div>
-      <Readout datum={sel !== null ? data[sel] : null} series={series} empty="Säule antippen für genaue Werte" />
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Säulendiagramm" onPointerLeave={() => setSel(null)}>
+      <Readout datum={sel !== null ? data[sel] : null} series={series} empty={t('Säule antippen für genaue Werte')} />
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label={t("Säulendiagramm")} onPointerLeave={() => setSel(null)}>
         <Grid max={max} />
         {data.map((d, i) => {
           const x = ML + band * i + (band - bw) / 2;
@@ -131,8 +132,8 @@ export function LineChart({ data, series }: { data: Datum[]; series: Series[] })
   };
   return (
     <div>
-      <Readout datum={sel !== null ? data[sel] : null} series={series} empty="Diagramm antippen für genaue Werte" />
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full touch-pan-y" role="img" aria-label="Liniendiagramm"
+      <Readout datum={sel !== null ? data[sel] : null} series={series} empty={t('Diagramm antippen für genaue Werte')} />
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full touch-pan-y" role="img" aria-label={t("Liniendiagramm")}
         onPointerLeave={() => setSel(null)}
         onPointerMove={pick} onPointerDown={pick}>
         <Grid max={max} />

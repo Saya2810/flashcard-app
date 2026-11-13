@@ -1,5 +1,5 @@
 import type { CardInput, DeckInput } from './repo';
-import { buildCard, buildDeck, deleteCards } from './repo';
+import { buildCard, buildDeck, deleteCards, deleteVerbRows } from './repo';
 import { db, type AppDB } from './db';
 import { newId } from '../lib/text';
 
@@ -102,12 +102,15 @@ export async function loadSampleData(database: AppDB = db): Promise<number> {
  */
 export async function removeSampleData(database: AppDB = db): Promise<number> {
   const d = database;
-  return d.transaction('rw', [d.decks, d.lessons, d.cards, d.states, d.reviews, d.days], async () => {
+  return d.transaction('rw', [d.decks, d.lessons, d.cards, d.states, d.reviews, d.days, d.verbs, d.formStates, d.formReviews], async () => {
     const sampleDecks = await d.decks.where('sample').equals(1).toArray();
+    const verbIds: string[] = [];
+    for (const deck of sampleDecks) verbIds.push(...(await d.verbs.where('deckId').equals(deck.id).primaryKeys()));
     const ids = new Set(await d.cards.where('sample').equals(1).primaryKeys());
     for (const deck of sampleDecks) for (const id of await d.cards.where('deckId').equals(deck.id).primaryKeys()) ids.add(id);
     const sub = new Map<string, { reviews: number; correct: number; incorrect: number; newCards: number; relearn: number }>();
-    await d.reviews.where('cardId').anyOf([...ids]).each((e) => {
+    const events = [...(await d.reviews.where('cardId').anyOf([...ids]).toArray()), ...(await d.formReviews.where('verbId').anyOf(verbIds).toArray())];
+    events.forEach((e) => {
       const r = sub.get(e.day) ?? { reviews: 0, correct: 0, incorrect: 0, newCards: 0, relearn: 0 };
       if (e.kind === 'relearn') r.relearn++;
       else {
@@ -132,6 +135,7 @@ export async function removeSampleData(database: AppDB = db): Promise<number> {
       else await d.days.put(next);
     }
     await deleteCards([...ids], d);
+    await deleteVerbRows(verbIds, d);
     for (const deck of sampleDecks) {
       await d.lessons.where('deckId').equals(deck.id).delete();
       await d.decks.delete(deck.id);

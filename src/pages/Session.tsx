@@ -11,6 +11,7 @@ import { newId } from '../lib/text';
 import { buildQueue, requeueWrong, type QueueItem } from '../srs/queue';
 import { recordAnswer } from '../srs/review';
 import { MODE_LABEL, type Card as CardT, type Deck, type SessionConfig } from '../types';
+import { plural, t } from '../i18n';
 
 const EMPTY_TEXT: Record<string, string> = {
   smart: 'Für heute ist nichts mehr fällig und das Limit für neue Karten ist erreicht. Über „Stapel & Lektionen“ kannst du trotzdem weiterüben.',
@@ -96,10 +97,10 @@ export default function Session() {
 
   const header = (
     <header className="safe-top flex items-center gap-3 px-4 pb-3">
-      <IconButton icon="x" label="Sitzung beenden" className="-ml-2 text-muted" onClick={() => nav(-1)} />
+      <IconButton icon="x" label={t("Sitzung beenden")} className="-ml-2 text-muted" onClick={() => nav(-1)} />
       <div className="flex-1">
         <div className="mb-1.5 flex justify-between gap-2 text-xs font-medium text-muted">
-          <span className="flex min-w-0 items-center gap-1.5">{deck && <DeckDot color={deck.color} size={8} />}<span className="truncate">{deck?.name ?? MODE_LABEL[cfg.mode]}</span></span>
+          <span className="flex min-w-0 items-center gap-1.5">{deck && <DeckDot color={deck.color} size={8} />}<span className="truncate">{deck?.name ?? t(MODE_LABEL[cfg.mode])}</span></span>
           <span className="shrink-0 tabular-nums" data-testid="progress">{isFree ? `${Math.min(freeIdx + 1, total)} / ${total}` : `${done} / ${total}`}</span>
         </div>
         <ProgressBar value={total ? (isFree ? (freeIdx + 1) / total : done / total) : 0} />
@@ -113,9 +114,9 @@ export default function Session() {
     return (
       <div className="mx-auto flex min-h-full max-w-xl flex-col">
         {header}
-        <EmptyState icon="check" title="Nichts zu lernen" text={EMPTY_TEXT[cfg.mode]}>
-          <Button onClick={() => nav('/lernen', { replace: true })}>Anderen Modus wählen</Button>
-          <Button variant="soft" onClick={() => nav('/', { replace: true })}>Zur Startseite</Button>
+        <EmptyState icon="check" title={t("Nichts zu lernen")} text={t(EMPTY_TEXT[cfg.mode])}>
+          <Button onClick={() => nav('/lernen', { replace: true })}>{t('Anderen Modus wählen')}</Button>
+          <Button variant="soft" onClick={() => nav('/', { replace: true })}>{t('Zur Startseite')}</Button>
         </EmptyState>
       </div>
     );
@@ -126,15 +127,15 @@ export default function Session() {
     return (
       <div className="pop-in mx-auto flex min-h-full max-w-xl flex-col px-4 safe-bottom" data-testid="summary">
         <div className="safe-top" />
-        <h1 className="mt-6 text-[1.9rem] font-bold tracking-tight">Sitzung beendet</h1>
-        <p className="text-muted">{n} {n === 1 ? 'Karte' : 'Karten'} gelernt, {n ? Math.round((result.correct / n) * 100) : 0} % beim ersten Versuch richtig.</p>
+        <h1 className="mt-6 text-[1.9rem] font-bold tracking-tight">{t('Sitzung beendet')}</h1>
+        <p className="text-muted">{t('{n} {cards} gelernt, {p} % beim ersten Versuch richtig.', { n, cards: plural(n, 'Karte', 'Karten'), p: n ? Math.round((result.correct / n) * 100) : 0 })}</p>
         <div className="mt-5 grid grid-cols-2 gap-3">
-          <Card className="!bg-ok-soft"><div className="flex items-center gap-2 text-ok"><Icon name="check" /><span className="text-sm font-semibold">Richtig</span></div><div className="mt-1 text-3xl font-bold tabular-nums" data-testid="sum-correct">{result.correct}</div></Card>
-          <Card className="!bg-bad-soft"><div className="flex items-center gap-2 text-bad"><Icon name="x" /><span className="text-sm font-semibold">Falsch</span></div><div className="mt-1 text-3xl font-bold tabular-nums" data-testid="sum-incorrect">{result.incorrect}</div></Card>
+          <Card className="!bg-ok-soft"><div className="flex items-center gap-2 text-ok"><Icon name="check" /><span className="text-sm font-semibold">{t('Richtig')}</span></div><div className="mt-1 text-3xl font-bold tabular-nums" data-testid="sum-correct">{result.correct}</div></Card>
+          <Card className="!bg-bad-soft"><div className="flex items-center gap-2 text-bad"><Icon name="x" /><span className="text-sm font-semibold">{t('Falsch')}</span></div><div className="mt-1 text-3xl font-bold tabular-nums" data-testid="sum-incorrect">{result.incorrect}</div></Card>
         </div>
         {wrongCards.length > 0 && (
           <Card className="mt-4">
-            <h2 className="mb-2 font-bold">Diese Karten kommen bald wieder</h2>
+            <h2 className="mb-2 font-bold">{t('Diese Karten kommen bald wieder')}</h2>
             <ul className="divide-y divide-line">
               {wrongCards.map((c) => {
                 const d = loaded.decks.get(c.deckId)!;
@@ -149,8 +150,8 @@ export default function Session() {
           </Card>
         )}
         <div className="mt-auto flex flex-col gap-2 pt-6">
-          <Button size="lg" onClick={() => { setLoaded(null); setRun((r) => r + 1); }}>Weiterlernen</Button>
-          <Button variant="soft" onClick={() => nav('/', { replace: true })}>Zur Startseite</Button>
+          <Button size="lg" onClick={() => { setLoaded(null); setRun((r) => r + 1); }}>{t('Weiterlernen')}</Button>
+          <Button variant="soft" onClick={() => nav('/', { replace: true })}>{t('Zur Startseite')}</Button>
         </div>
       </div>
     );
@@ -162,7 +163,7 @@ export default function Session() {
     <div className="mx-auto flex min-h-full max-w-xl flex-col">
       {header}
       <div className="px-4 text-center text-xs font-medium text-muted">
-        {isFree ? 'Freies Lernen – zählt nicht für den Lernplan' : current?.relearn ? 'Noch einmal – vorhin falsch beantwortet' : current?.isNew ? 'Neue Karte' : ' '}
+        {isFree ? t('Freies Lernen – zählt nicht für den Lernplan') : current?.relearn ? t('Noch einmal – vorhin falsch beantwortet') : current?.isNew ? t('Neue Karte') : ' '}
       </div>
       <main className="flex flex-1 flex-col justify-center px-4 py-4">
         {card && deck && current && (
@@ -183,18 +184,18 @@ export default function Session() {
         )}
         {isFree ? (
           <div className="grid grid-cols-2 gap-3">
-            <Button size="lg" variant="soft" disabled={freeIdx === 0} onClick={() => { setFreeIdx(freeIdx - 1); next(); }}>Zurück</Button>
+            <Button size="lg" variant="soft" disabled={freeIdx === 0} onClick={() => { setFreeIdx(freeIdx - 1); next(); }}>{t('Zurück')}</Button>
             {freeIdx < total - 1
-              ? <Button size="lg" onClick={() => { setFreeIdx(freeIdx + 1); next(); }}>Weiter</Button>
-              : <Button size="lg" onClick={() => nav(-1)}>Fertig</Button>}
+              ? <Button size="lg" onClick={() => { setFreeIdx(freeIdx + 1); next(); }}>{t('Weiter')}</Button>
+              : <Button size="lg" onClick={() => nav(-1)}>{t('Fertig')}</Button>}
           </div>
         ) : flipped ? (
           <div className="grid grid-cols-2 gap-3">
-            <Button size="lg" variant="bad" disabled={busy} onClick={() => void answer(false)} data-testid="btn-wrong"><Icon name="x" />Falsch</Button>
-            <Button size="lg" variant="ok" disabled={busy} onClick={() => void answer(true)} data-testid="btn-right"><Icon name="check" />Richtig</Button>
+            <Button size="lg" variant="bad" disabled={busy} onClick={() => void answer(false)} data-testid="btn-wrong"><Icon name="x" />{t('Falsch')}</Button>
+            <Button size="lg" variant="ok" disabled={busy} onClick={() => void answer(true)} data-testid="btn-right"><Icon name="check" />{t('Richtig')}</Button>
           </div>
         ) : (
-          <Button size="lg" variant="soft" className="w-full" onClick={() => setFlipped(true)} data-testid="reveal">{typing ? 'Lösung vergleichen' : 'Lösung zeigen'}</Button>
+          <Button size="lg" variant="soft" className="w-full" onClick={() => setFlipped(true)} data-testid="reveal">{typing ? t('Lösung vergleichen') : t('Lösung zeigen')}</Button>
         )}
       </footer>
     </div>

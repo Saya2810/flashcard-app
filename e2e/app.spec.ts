@@ -97,7 +97,7 @@ test('download a backup and restore it after data loss', async ({ page }) => {
 
   await page.goto('/#/einstellungen');
   await page.getByTestId('restore-input').setInputFiles(path!);
-  await expect(page.getByTestId('restore-summary')).toContainText('1 Karten in 1 Stapel');
+  await expect(page.getByTestId('restore-summary')).toContainText('1 Karte in 1 Stapel');
   await page.getByRole('button', { name: 'Zusammenführen' }).click();
   await page.goto('/#/karten');
   await expect(page.getByTestId('card-count')).toHaveText('1 Karte');

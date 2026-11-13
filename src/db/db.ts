@@ -1,4 +1,5 @@
 import Dexie, { type Table } from 'dexie';
+import type { ConjScheme, FormReview, FormState, Verb } from '../conj/types';
 import type { AppSettings, Card, DayStats, Deck, LearningSession, Lesson, Media, ReviewEvent, SchedState } from '../types';
 
 /**
@@ -14,7 +15,7 @@ import type { AppSettings, Card, DayStats, Deck, LearningSession, Lesson, Media,
  *   });
  */
 export const DB_NAME = 'lernkarten';
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 export class AppDB extends Dexie {
   decks!: Table<Deck, string>;
@@ -26,6 +27,10 @@ export class AppDB extends Dexie {
   sessions!: Table<LearningSession, string>;
   days!: Table<DayStats, string>;
   settings!: Table<AppSettings, string>;
+  schemes!: Table<ConjScheme, string>;
+  verbs!: Table<Verb, string>;
+  formStates!: Table<FormState, string>;
+  formReviews!: Table<FormReview, string>;
 
   constructor(name = DB_NAME) {
     super(name);
@@ -40,6 +45,13 @@ export class AppDB extends Dexie {
       sessions: 'id, startedAt',
       days: 'day',
       settings: 'key',
+    });
+    // v2 (conjugation trainer): purely additive – new tables only, every existing table and row stays untouched.
+    this.version(2).stores({
+      schemes: 'id, name, lang',
+      verbs: 'id, deckId, lessonId, schemeId, infinitiveKey, createdAt, *tags',
+      formStates: 'id, verbId, deckId, due, problem',
+      formReviews: 'id, verbId, deckId, ts, day, sessionId, [verbId+ts]',
     });
   }
 }

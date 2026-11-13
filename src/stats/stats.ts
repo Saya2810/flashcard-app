@@ -1,3 +1,4 @@
+import { locale } from '../i18n';
 import { db, type AppDB } from '../db/db';
 import { addDays, dayKey, endOfDay, keyToDate } from '../lib/dates';
 import { emptyDay, statusCounts } from '../srs/review';
@@ -173,6 +174,6 @@ export async function loadDeckStats(now = Date.now(), database: AppDB = db): Pro
   const fin = <T extends GroupStats>(g: T): T => ({ ...g, progress: g.total ? g.progress / g.total : 0 });
   return [...byDeck.values()].map(({ lessonMap, ...g }) => ({
     ...fin(g),
-    lessons: [...lessonMap.values()].map(fin).sort((a, b) => (a.lesson ? (b.lesson ? a.lesson.name.localeCompare(b.lesson.name, 'de', { numeric: true }) : -1) : 1)),
+    lessons: [...lessonMap.values()].map(fin).sort((a, b) => (a.lesson ? (b.lesson ? a.lesson.name.localeCompare(b.lesson.name, locale(), { numeric: true }) : -1) : 1)),
   }));
 }

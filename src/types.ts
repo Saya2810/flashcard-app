@@ -194,7 +194,8 @@ export const MODE_LABEL: Record<Mode, string> = {
 
 export interface LearningSession {
   id: string;
-  mode: Mode;
+  /** Card modes plus the conjugation trainer modes ('conj-full', 'conj-forms'). */
+  mode: Mode | 'conj-full' | 'conj-forms';
   direction: DirectionChoice;
   deckIds: string[];
   lessonIds: string[];
@@ -220,6 +221,8 @@ export interface DayStats {
 export interface AppSettings {
   key: 'app';
   theme: 'system' | 'light' | 'dark';
+  /** Language of the app interface (not of the learning content). */
+  uiLanguage: string;
   /** App interface font. */
   uiFont: 'system' | 'rounded' | 'serif';
   defaultDirection: DirectionChoice;
@@ -228,6 +231,8 @@ export interface AppSettings {
   maxReviewsPerDay: number;
   /** Global multiplier on top of each deck's side scale. */
   cardFontScale: number;
+  /** Size of the typed-answer fields (multiplier on top of the deck side scale). */
+  answerFontScale: number;
   animations: boolean;
   autoIncludeProblems: boolean;
   sessionSize: number;
@@ -242,12 +247,14 @@ export interface AppSettings {
 export const DEFAULT_SETTINGS: AppSettings = {
   key: 'app',
   theme: 'system',
+  uiLanguage: 'de',
   uiFont: 'rounded',
   defaultDirection: 'fwd',
   dailyGoal: 20,
   newPerDay: 15,
   maxReviewsPerDay: 200,
   cardFontScale: 1,
+  answerFontScale: 1,
   animations: true,
   autoIncludeProblems: true,
   sessionSize: 20,
@@ -271,3 +278,6 @@ export interface SessionConfig {
 export const defaultSide = (label: string, patch: Partial<SideStyle> = {}): SideStyle => ({
   label, lang: '', dir: 'auto', font: 'system', scale: 1, weight: 600, ...patch,
 });
+
+/** Scheduling fields shared by card states and verb-form states (what the FSRS wrapper needs). */
+export type SchedLike = Omit<SchedState, 'id' | 'cardId' | 'direction'>;

@@ -1,6 +1,6 @@
 import { createEmptyCard, fsrs, generatorParameters, Rating, type Card, type FSRS, type State } from 'ts-fsrs';
 import { addDays, DAY_MS } from '../lib/dates';
-import type { SchedState } from '../types';
+import type { SchedLike } from '../types';
 
 /**
  * Long-term scheduling with FSRS (ts-fsrs library, default parameters).
@@ -36,7 +36,7 @@ function engine(priority: number): FSRS {
   return e;
 }
 
-function toCard(s: SchedState | undefined, now: number): Card {
+function toCard(s: SchedLike | undefined, now: number): Card {
   if (!s || s.reps === 0) return createEmptyCard(new Date(now));
   return {
     due: new Date(s.due),
@@ -63,7 +63,7 @@ export interface ScheduleResult {
   lastReview: number;
 }
 
-export function schedule(s: SchedState | undefined, correct: boolean, priority: number, now: number): ScheduleResult {
+export function schedule(s: SchedLike | undefined, correct: boolean, priority: number, now: number): ScheduleResult {
   const { card } = engine(priority).next(toCard(s, now), new Date(now), correct ? Rating.Good : Rating.Again);
   const days = Math.max(1, Math.round(card.scheduled_days));
   return {
@@ -80,14 +80,14 @@ export function schedule(s: SchedState | undefined, correct: boolean, priority: 
 }
 
 /** Estimated retrievability (0–1) right now; null if never studied. */
-export function retrievability(s: SchedState | undefined, now: number): number | null {
+export function retrievability(s: SchedLike | undefined, now: number): number | null {
   if (!s || s.reps === 0 || !s.stability) return null;
   const elapsed = Math.max(0, (now - s.lastReview) / DAY_MS);
   return engine(3).forgetting_curve(elapsed, s.stability);
 }
 
 /** New due date after a priority change (memory state stays unchanged). */
-export function dueForPriority(s: SchedState, priority: number): { due: number; scheduledDays: number } {
+export function dueForPriority(s: SchedLike, priority: number): { due: number; scheduledDays: number } {
   if (s.reps === 0 || s.curIncorrect > 0) return { due: s.due, scheduledDays: s.scheduledDays };
   const days = Math.max(1, engine(priority).next_interval(s.stability, 0));
   return { due: addDays(s.lastReview, days), scheduledDays: days };

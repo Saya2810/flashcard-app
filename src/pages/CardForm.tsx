@@ -7,6 +7,7 @@ import { db } from '../db/db';
 import { storeImage } from '../db/media';
 import { addCard, addLesson, findDuplicates, updateCard, ValidationError, type DuplicateInfo } from '../db/repo';
 import type { SideStyle } from '../types';
+import { t } from '../i18n';
 
 const split = (s: string) => s.split(/\s*[|,;]\s*/).map((x) => x.trim()).filter(Boolean);
 const EMPTY = { deckId: '', lessonId: '', front: '', back: '', alt: '', notes: '', priority: 3, tags: '', fields: {} as Record<string, string> };
@@ -27,9 +28,9 @@ function SideInput({ label, side, value, onChange, rich, testId }: { label: stri
         <span className="text-sm font-semibold">{label} <span className="font-normal text-muted">({side.label})</span></span>
         {rich && (
           <span className="flex gap-1">
-            <button type="button" className="rounded-full px-2.5 py-1 text-xs font-semibold text-accent" onClick={() => fileRef.current?.click()} aria-label={`Bild zu ${label} hinzufügen`}><Icon name="image" size={16} /></button>
-            <button type="button" className="rounded-full px-2.5 py-1 text-xs font-semibold text-accent" onClick={() => insert('$  $')} aria-label="Formel einfügen">ƒx</button>
-            <button type="button" aria-pressed={preview} className={cx('rounded-full px-2.5 py-1 text-xs font-semibold', preview ? 'bg-accent text-on-accent' : 'text-accent')} onClick={() => setPreview(!preview)}>Vorschau</button>
+            <button type="button" className="rounded-full px-2.5 py-1 text-xs font-semibold text-accent" onClick={() => fileRef.current?.click()} aria-label={t('Bild zu {label} hinzufügen', { label })}><Icon name="image" size={16} /></button>
+            <button type="button" className="rounded-full px-2.5 py-1 text-xs font-semibold text-accent" onClick={() => insert('$  $')} aria-label={t("Formel einfügen")}>{t('ƒx')}</button>
+            <button type="button" aria-pressed={preview} className={cx('rounded-full px-2.5 py-1 text-xs font-semibold', preview ? 'bg-accent text-on-accent' : 'text-accent')} onClick={() => setPreview(!preview)}>{t('Vorschau')}</button>
           </span>
         )}
       </div>
@@ -43,7 +44,7 @@ function SideInput({ label, side, value, onChange, rich, testId }: { label: stri
         const f = e.target.files?.[0];
         e.target.value = '';
         if (!f) return;
-        try { const { markdown } = await storeImage(f); insert(`\n${markdown}\n`); } catch { toast('Bild konnte nicht gelesen werden.'); }
+        try { const { markdown } = await storeImage(f); insert(`\n${markdown}\n`); } catch { toast(t('Bild konnte nicht gelesen werden.')); }
       }} />
     </div>
   );
@@ -81,50 +82,50 @@ export default function CardForm() {
       let lessonId = f.lessonId;
       if (lessonId === '__new') lessonId = (await addLesson(f.deckId, newLesson)).id;
       const input = { deckId: f.deckId, lessonId, front: f.front, back: f.back, altBack: f.alt.split(/\s*\|\s*/).filter(Boolean), fields: f.fields, notes: f.notes, priority: f.priority, tags: split(f.tags) };
-      if (id) { await updateCard(id, input); toast('Gespeichert'); nav(-1); return; }
+      if (id) { await updateCard(id, input); toast(t('Gespeichert')); nav(-1); return; }
       const c = await addCard(input);
-      toast('Karte gespeichert');
+      toast(t('Karte gespeichert'));
       if (another) { setF({ ...EMPTY, deckId: f.deckId, lessonId, priority: f.priority, tags: f.tags }); setNewLesson(''); window.scrollTo({ top: 0 }); }
       else nav(`/karten/${c.id}`, { replace: true });
     } catch (e) {
-      setError(e instanceof ValidationError ? e.message : 'Speichern fehlgeschlagen. Bitte noch einmal versuchen.');
+      setError(e instanceof ValidationError ? e.message : t('Speichern fehlgeschlagen. Bitte noch einmal versuchen.'));
     }
   };
 
   if (decks.length === 0) {
-    return <Page title="Neue Karte" back><Card className="text-center"><p className="mb-4 text-sm text-muted">Lege zuerst einen Stapel an – er bestimmt Sprache, Schrift und Felder der Karten.</p><Button onClick={() => nav('/stapel/neu')}>Stapel anlegen</Button></Card></Page>;
+    return <Page title={t("Neue Karte")} back><Card className="text-center"><p className="mb-4 text-sm text-muted">{t('Lege zuerst einen Stapel an – er bestimmt Sprache, Schrift und Felder der Karten.')}</p><Button onClick={() => nav('/stapel/neu')}>{t('Stapel anlegen')}</Button></Card></Page>;
   }
 
   return (
-    <Page title={id ? 'Karte bearbeiten' : 'Neue Karte'} back>
+    <Page title={id ? t('Karte bearbeiten') : t('Neue Karte')} back>
       <form className="space-y-4 pb-8" onSubmit={(e) => { e.preventDefault(); void save(false); }}>
         <Card className="grid grid-cols-2 gap-3">
-          <Field label="Stapel">
+          <Field label={t("Stapel")}>
             <select value={f.deckId} onChange={(e) => setF({ ...f, deckId: e.target.value, lessonId: '' })} className={inputCls} data-testid="in-deck">
-              <option value="" disabled>Bitte wählen</option>
+              <option value="" disabled>{t('Bitte wählen')}</option>
               {decks.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
             </select>
           </Field>
-          <Field label="Lektion">
+          <Field label={t("Lektion")}>
             <select value={f.lessonId} onChange={(e) => setF({ ...f, lessonId: e.target.value })} className={inputCls} disabled={!deck} data-testid="in-lesson">
-              <option value="">Ohne Lektion</option>
+              <option value="">{t('Ohne Lektion')}</option>
               {lessons.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-              <option value="__new">Neue Lektion …</option>
+              <option value="__new">{t('Neue Lektion …')}</option>
             </select>
           </Field>
-          {f.lessonId === '__new' && <div className="col-span-2"><Field label="Name der neuen Lektion"><input value={newLesson} onChange={(e) => setNewLesson(e.target.value)} className={inputCls} /></Field></div>}
+          {f.lessonId === '__new' && <div className="col-span-2"><Field label={t("Name der neuen Lektion")}><input value={newLesson} onChange={(e) => setNewLesson(e.target.value)} className={inputCls} /></Field></div>}
         </Card>
 
         {deck && (
           <Card className="space-y-4">
-            <SideInput label="Vorderseite" side={deck.front} value={f.front} onChange={(front) => setF({ ...f, front })} rich={deck.rich} testId="in-front" />
-            <SideInput label="Rückseite" side={deck.back} value={f.back} onChange={(back) => setF({ ...f, back })} rich={deck.rich} testId="in-back" />
-            {dup.exact.length > 0 && <p role="alert" className="rounded-2xl bg-bad-soft p-3 text-sm text-bad">Diese Karte gibt es in diesem Stapel schon. Du kannst sie trotzdem speichern.</p>}
-            {dup.exact.length === 0 && dup.sameFront.length > 0 && <p className="rounded-2xl bg-sunken p-3 text-sm">Die Vorderseite gibt es schon mit einer anderen Antwort. Du kannst dort auch eine weitere Antwort ergänzen.</p>}
-            <Field label="Weitere richtige Antworten" hint="Mehrere mit „|“ trennen. Sie werden beim Vergleich der getippten Antwort berücksichtigt.">
+            <SideInput label={t("Vorderseite")} side={deck.front} value={f.front} onChange={(front) => setF({ ...f, front })} rich={deck.rich} testId="in-front" />
+            <SideInput label={t("Rückseite")} side={deck.back} value={f.back} onChange={(back) => setF({ ...f, back })} rich={deck.rich} testId="in-back" />
+            {dup.exact.length > 0 && <p role="alert" className="rounded-2xl bg-bad-soft p-3 text-sm text-bad">{t('Diese Karte gibt es in diesem Stapel schon. Du kannst sie trotzdem speichern.')}</p>}
+            {dup.exact.length === 0 && dup.sameFront.length > 0 && <p className="rounded-2xl bg-sunken p-3 text-sm">{t('Die Vorderseite gibt es schon mit einer anderen Antwort. Du kannst dort auch eine weitere Antwort ergänzen.')}</p>}
+            <Field label={t("Weitere richtige Antworten")} hint={t("Mehrere mit „|“ trennen. Sie werden beim Vergleich der getippten Antwort berücksichtigt.")}>
               <input value={f.alt} onChange={(e) => setF({ ...f, alt: e.target.value })} dir={deck.back.dir} lang={deck.back.lang || undefined} className={inputCls} data-testid="in-alt" />
             </Field>
-            {deck.rich && <p className="text-xs text-muted">Formatierung: **fett**, *kursiv*, Listen mit „- “, Formeln mit $…$ oder $$…$$, Code mit ```.</p>}
+            {deck.rich && <p className="text-xs text-muted">{t('Formatierung: **fett**, *kursiv*, Listen mit „- “, Formeln mit $…$ oder $$…$$, Code mit ```.')}</p>}
           </Card>
         )}
 
@@ -139,15 +140,15 @@ export default function CardForm() {
         )}
 
         <Card className="space-y-4">
-          <div><span className="mb-1 block text-sm font-semibold">Priorität</span><Stars value={f.priority} onChange={(p) => setF({ ...f, priority: p })} /></div>
-          <Field label="Tags" hint="Mehrere mit Komma trennen."><input value={f.tags} onChange={(e) => setF({ ...f, tags: e.target.value })} className={inputCls} /></Field>
-          <Field label="Notizen"><textarea dir="auto" rows={2} value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} className={inputCls} /></Field>
+          <div><span className="mb-1 block text-sm font-semibold">{t('Priorität')}</span><Stars value={f.priority} onChange={(p) => setF({ ...f, priority: p })} /></div>
+          <Field label={t("Tags")} hint={t("Mehrere mit Komma trennen.")}><input value={f.tags} onChange={(e) => setF({ ...f, tags: e.target.value })} className={inputCls} /></Field>
+          <Field label={t("Notizen")}><textarea dir="auto" rows={2} value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} className={inputCls} /></Field>
         </Card>
 
         {error && <p role="alert" className="rounded-2xl bg-bad-soft p-3 text-sm font-medium text-bad">{error}</p>}
         <div className="flex flex-col gap-2">
-          <Button type="submit" size="lg" data-testid="save-card">Speichern</Button>
-          {!id && <Button variant="soft" onClick={() => void save(true)} data-testid="save-next">Speichern und nächste</Button>}
+          <Button type="submit" size="lg" data-testid="save-card">{t('Speichern')}</Button>
+          {!id && <Button variant="soft" onClick={() => void save(true)} data-testid="save-next">{t('Speichern und nächste')}</Button>}
         </div>
       </form>
     </Page>

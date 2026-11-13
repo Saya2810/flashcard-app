@@ -8,6 +8,7 @@ import { deleteCards, moveCards } from '../db/repo';
 import { plainText, searchKey } from '../lib/text';
 import { PRIORITY_LABEL, STATUS_LABEL, STATUS_ORDER, type Card, type Deck, type Status } from '../types';
 import { SectionTabs } from './shared';
+import { locale, plural, t } from '../i18n';
 
 type Sort = 'newest' | 'front' | 'back' | 'priority' | 'errors' | 'reviewed';
 const SORTS: { value: Sort; label: string }[] = [
@@ -46,8 +47,8 @@ function Row({ c, deck }: { c: Card; deck: Deck | undefined }) {
       <span className="mt-0.5 flex items-center justify-between gap-2">
         <span className="flex min-w-0 items-center gap-2">
           <StatusBadge status={c.status} />
-          {c.problem === 1 && <span className="text-xs font-semibold text-bad">Problem</span>}
-          {c.sample === 1 && <span className="rounded-full bg-sunken px-2 text-[0.68rem] font-medium text-muted">Beispiel</span>}
+          {c.problem === 1 && <span className="text-xs font-semibold text-bad">{t('Problem')}</span>}
+          {c.sample === 1 && <span className="rounded-full bg-sunken px-2 text-[0.68rem] font-medium text-muted">{t('Beispiel')}</span>}
         </span>
         <Stars value={c.priority} size={13} />
       </span>
@@ -87,8 +88,8 @@ export default function CardList() {
   }, [needErrors]);
 
   const deckById = useMemo(() => new Map(decks.map((d) => [d.id, d])), [decks]);
-  const allTags = useMemo(() => [...new Set((cards ?? []).flatMap((c) => c.tags))].sort((a, b) => a.localeCompare(b, 'de')), [cards]);
-  const deckLessons = useMemo(() => lessons.filter((l) => l.deckId === deckFilter).sort((a, b) => a.name.localeCompare(b.name, 'de', { numeric: true })), [lessons, deckFilter]);
+  const allTags = useMemo(() => [...new Set((cards ?? []).flatMap((c) => c.tags))].sort((a, b) => a.localeCompare(b, locale())), [cards]);
+  const deckLessons = useMemo(() => lessons.filter((l) => l.deckId === deckFilter).sort((a, b) => a.name.localeCompare(b.name, locale(), { numeric: true })), [lessons, deckFilter]);
 
   const list = useMemo(() => {
     if (!cards) return [];
@@ -135,34 +136,34 @@ export default function CardList() {
   const currentDeck = deckFilter ? deckById.get(deckFilter) : undefined;
 
   return (
-    <Page title={currentDeck?.name ?? 'Karten'} back={currentDeck ? `/stapel/${currentDeck.id}` : undefined} actions={<>
-      <IconButton icon="upload" label="Importieren" onClick={() => nav(`/import${deckFilter ? `?stapel=${deckFilter}` : ''}`)} />
-      <IconButton icon="plus" label="Karte hinzufügen" onClick={() => nav(`/karten/neu?${new URLSearchParams({ ...(deckFilter ? { stapel: deckFilter } : {}), ...(lessonFilter ? { lektion: lessonFilter } : {}) })}`)} />
+    <Page title={currentDeck?.name ?? t('Karten')} back={currentDeck ? `/stapel/${currentDeck.id}` : undefined} actions={<>
+      <IconButton icon="upload" label={t("Importieren")} onClick={() => nav(`/import${deckFilter ? `?stapel=${deckFilter}` : ''}`)} />
+      <IconButton icon="plus" label={t("Karte hinzufügen")} onClick={() => nav(`/karten/neu?${new URLSearchParams({ ...(deckFilter ? { stapel: deckFilter } : {}), ...(lessonFilter ? { lektion: lessonFilter } : {}) })}`)} />
     </>}>
       {!currentDeck && <SectionTabs active="karten" />}
       <div className="relative mb-2">
         <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted"><Icon name="search" size={20} /></span>
-        <input type="search" dir="auto" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Suchen in allen Feldern" aria-label="Karten durchsuchen" className={cx(inputCls, 'pl-11')} />
+        <input type="search" dir="auto" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("Suchen in allen Feldern")} aria-label={t("Karten durchsuchen")} className={cx(inputCls, 'pl-11')} />
       </div>
       <div className="-mx-4 mb-3 flex gap-2 overflow-x-auto px-4 pb-1">
-        <Chip active={activeFilters > 0} onClick={() => setFilterOpen(true)}><span className="inline-flex items-center gap-1.5"><Icon name="filter" size={16} />Filter{activeFilters ? ` (${activeFilters})` : ''}</span></Chip>
-        <select aria-label="Sortierung" value={sort} onChange={(e) => setSort(e.target.value as Sort)} className="min-h-[2.5rem] rounded-full border border-line bg-surface px-3 text-sm font-medium">
-          {SORTS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+        <Chip active={activeFilters > 0} onClick={() => setFilterOpen(true)}><span className="inline-flex items-center gap-1.5"><Icon name="filter" size={16} />{t('Filter')}{activeFilters ? ` (${activeFilters})` : ''}</span></Chip>
+        <select aria-label={t("Sortierung")} value={sort} onChange={(e) => setSort(e.target.value as Sort)} className="min-h-[2.5rem] rounded-full border border-line bg-surface px-3 text-sm font-medium">
+          {SORTS.map((s) => <option key={s.value} value={s.value}>{t(s.label)}</option>)}
         </select>
-        {lessonFilter !== null && <Chip active onClick={() => setParam('lektion', null)}>{lessonFilter ? lessons.find((l) => l.id === lessonFilter)?.name ?? 'Lektion' : 'Ohne Lektion'} ✕</Chip>}
+        {lessonFilter !== null && <Chip active onClick={() => setParam('lektion', null)}>{lessonFilter ? lessons.find((l) => l.id === lessonFilter)?.name ?? t('Lektion') : t('Ohne Lektion')} ✕</Chip>}
         <Chip active={selecting} onClick={() => (selecting ? endSelect() : setSelecting(true))}>{selecting ? 'Fertig' : 'Auswählen'}</Chip>
       </div>
 
       {cards && cards.length === 0 ? (
-        <EmptyState icon="cards" title="Noch keine Karten" text="Lege eine Karte an oder importiere eine Liste.">
-          <Button onClick={() => nav(`/karten/neu${deckFilter ? `?stapel=${deckFilter}` : ''}`)}>Karte hinzufügen</Button>
-          <Button variant="soft" onClick={() => nav(`/import${deckFilter ? `?stapel=${deckFilter}` : ''}`)}>Importieren</Button>
+        <EmptyState icon="cards" title={t("Noch keine Karten")} text={t("Lege eine Karte an oder importiere eine Liste.")}>
+          <Button onClick={() => nav(`/karten/neu${deckFilter ? `?stapel=${deckFilter}` : ''}`)}>{t('Karte hinzufügen')}</Button>
+          <Button variant="soft" onClick={() => nav(`/import${deckFilter ? `?stapel=${deckFilter}` : ''}`)}>{t('Importieren')}</Button>
         </EmptyState>
       ) : cards && list.length === 0 ? (
-        <EmptyState icon="search" title="Nichts gefunden" text="Zu dieser Suche oder diesen Filtern gibt es keine Karten." />
+        <EmptyState icon="search" title={t("Nichts gefunden")} text={t("Zu dieser Suche oder diesen Filtern gibt es keine Karten.")} />
       ) : (
         <>
-          <p className="mb-2 text-xs text-muted" data-testid="card-count">{list.length} {list.length === 1 ? 'Karte' : 'Karten'}</p>
+          <p className="mb-2 text-xs text-muted" data-testid="card-count">{list.length} {plural(list.length, 'Karte', 'Karten')}</p>
           <ul className="overflow-hidden rounded-card bg-surface shadow-card">
             {list.slice(0, limit).map((c, i) => {
               const deck = deckById.get(c.deckId);
@@ -186,48 +187,48 @@ export default function CardList() {
       {selecting && (
         <div className="fixed inset-x-0 z-30 mx-auto flex max-w-xl px-4" style={{ bottom: 'calc(4.5rem + env(safe-area-inset-bottom))' }}>
           <div className="flex flex-1 items-center gap-2 rounded-2xl bg-ink p-2 text-bg shadow-lift">
-            <span className="flex-1 pl-2 text-sm font-semibold">{selected.size} ausgewählt</span>
-            <Button size="sm" variant="soft" disabled={!selected.size} onClick={() => setMoveOpen(true)}>Verschieben</Button>
-            <Button size="sm" variant="bad" disabled={!selected.size} onClick={() => setConfirmDelete(true)}>Löschen</Button>
+            <span className="flex-1 pl-2 text-sm font-semibold">{t('{n} ausgewählt', { n: selected.size })}</span>
+            <Button size="sm" variant="soft" disabled={!selected.size} onClick={() => setMoveOpen(true)}>{t('Verschieben')}</Button>
+            <Button size="sm" variant="bad" disabled={!selected.size} onClick={() => setConfirmDelete(true)}>{t('Löschen')}</Button>
           </div>
         </div>
       )}
 
-      <Sheet open={filterOpen} onClose={() => setFilterOpen(false)} title="Filter"
-        footer={<div className="flex gap-2"><Button variant="soft" className="flex-1" onClick={() => { setPrio([]); setStatus([]); setTags([]); setErr(''); }}>Zurücksetzen</Button><Button className="flex-1" onClick={() => setFilterOpen(false)}>Anzeigen</Button></div>}>
+      <Sheet open={filterOpen} onClose={() => setFilterOpen(false)} title={t("Filter")}
+        footer={<div className="flex gap-2"><Button variant="soft" className="flex-1" onClick={() => { setPrio([]); setStatus([]); setTags([]); setErr(''); }}>{t('Zurücksetzen')}</Button><Button className="flex-1" onClick={() => setFilterOpen(false)}>{t('Anzeigen')}</Button></div>}>
         <div className="space-y-5">
           <div>
-            <h3 className="mb-2 text-sm font-semibold">Stapel</h3>
+            <h3 className="mb-2 text-sm font-semibold">{t('Stapel')}</h3>
             <div className="flex flex-wrap gap-2">
-              <Chip active={!deckFilter} onClick={() => setParam('stapel', null)}>Alle</Chip>
+              <Chip active={!deckFilter} onClick={() => setParam('stapel', null)}>{t('Alle')}</Chip>
               {decks.map((d) => <Chip key={d.id} active={deckFilter === d.id} onClick={() => setParam('stapel', d.id)}><span className="inline-flex items-center gap-1.5"><DeckDot color={d.color} size={9} />{d.name}</span></Chip>)}
             </div>
           </div>
           {deckFilter && (deckLessons.length > 0) && (
             <div>
-              <h3 className="mb-2 text-sm font-semibold">Lektion</h3>
+              <h3 className="mb-2 text-sm font-semibold">{t('Lektion')}</h3>
               <div className="flex flex-wrap gap-2">
-                <Chip active={lessonFilter === null} onClick={() => setParam('lektion', null)}>Alle</Chip>
+                <Chip active={lessonFilter === null} onClick={() => setParam('lektion', null)}>{t('Alle')}</Chip>
                 {deckLessons.map((l) => <Chip key={l.id} active={lessonFilter === l.id} onClick={() => setParam('lektion', l.id)}>{l.name}</Chip>)}
-                <Chip active={lessonFilter === ''} onClick={() => setParam('lektion', '')}>Ohne Lektion</Chip>
+                <Chip active={lessonFilter === ''} onClick={() => setParam('lektion', '')}>{t('Ohne Lektion')}</Chip>
               </div>
             </div>
           )}
-          <div><h3 className="mb-2 text-sm font-semibold">Priorität</h3><div className="flex flex-wrap gap-2">{[5, 4, 3, 2, 1].map((p) => <Chip key={p} active={prio.includes(p)} onClick={() => setPrio(toggle(prio, p))}>{p} – {PRIORITY_LABEL[p]}</Chip>)}</div></div>
-          <div><h3 className="mb-2 text-sm font-semibold">Lernstatus</h3><div className="flex flex-wrap gap-2">{STATUS_ORDER.map((s) => <Chip key={s} active={status.includes(s)} onClick={() => setStatus(toggle(status, s))}>{STATUS_LABEL[s]}</Chip>)}</div></div>
-          <div><h3 className="mb-2 text-sm font-semibold">Fehlerhäufigkeit</h3><div className="flex flex-wrap gap-2">{ERR_FILTERS.map((f) => <Chip key={f.value} active={err === f.value} onClick={() => setErr(f.value)}>{f.label}</Chip>)}</div></div>
-          {allTags.length > 0 && <div><h3 className="mb-2 text-sm font-semibold">Tags</h3><div className="flex flex-wrap gap-2">{allTags.map((t) => <Chip key={t} active={tags.includes(t)} onClick={() => setTags(toggle(tags, t))}>{t}</Chip>)}</div></div>}
+          <div><h3 className="mb-2 text-sm font-semibold">{t('Priorität')}</h3><div className="flex flex-wrap gap-2">{[5, 4, 3, 2, 1].map((p) => <Chip key={p} active={prio.includes(p)} onClick={() => setPrio(toggle(prio, p))}>{p} – {t(PRIORITY_LABEL[p])}</Chip>)}</div></div>
+          <div><h3 className="mb-2 text-sm font-semibold">{t('Lernstatus')}</h3><div className="flex flex-wrap gap-2">{STATUS_ORDER.map((s) => <Chip key={s} active={status.includes(s)} onClick={() => setStatus(toggle(status, s))}>{t(STATUS_LABEL[s])}</Chip>)}</div></div>
+          <div><h3 className="mb-2 text-sm font-semibold">{t('Fehlerhäufigkeit')}</h3><div className="flex flex-wrap gap-2">{ERR_FILTERS.map((f) => <Chip key={f.value} active={err === f.value} onClick={() => setErr(f.value)}>{t(f.label)}</Chip>)}</div></div>
+          {allTags.length > 0 && <div><h3 className="mb-2 text-sm font-semibold">{t('Tags')}</h3><div className="flex flex-wrap gap-2">{allTags.map((t) => <Chip key={t} active={tags.includes(t)} onClick={() => setTags(toggle(tags, t))}>{t}</Chip>)}</div></div>}
         </div>
       </Sheet>
 
-      <Sheet open={moveOpen} onClose={() => setMoveOpen(false)} title="Verschieben nach">
+      <Sheet open={moveOpen} onClose={() => setMoveOpen(false)} title={t("Verschieben nach")}>
         <ul className="space-y-4">
           {decks.map((d) => (
             <li key={d.id}>
               <div className="mb-1.5 flex items-center gap-2 text-sm font-semibold"><DeckDot color={d.color} />{d.name}</div>
               <div className="flex flex-wrap gap-2">
-                {[{ id: '', name: 'Ohne Lektion' }, ...lessons.filter((l) => l.deckId === d.id)].map((l) => (
-                  <Chip key={l.id} onClick={async () => { await moveCards([...selected], { deckId: d.id, lessonId: l.id }); toast(`${selected.size} verschoben`); setMoveOpen(false); endSelect(); }}>{l.name}</Chip>
+                {[{ id: '', name: t('Ohne Lektion') }, ...lessons.filter((l) => l.deckId === d.id)].map((l) => (
+                  <Chip key={l.id} onClick={async () => { await moveCards([...selected], { deckId: d.id, lessonId: l.id }); toast(t('{n} verschoben', { n: selected.size })); setMoveOpen(false); endSelect(); }}>{l.name}</Chip>
                 ))}
               </div>
             </li>
@@ -235,8 +236,8 @@ export default function CardList() {
         </ul>
       </Sheet>
 
-      <Confirm open={confirmDelete} danger title={`${selected.size} ${selected.size === 1 ? 'Karte' : 'Karten'} löschen?`} text="Die Karten und ihr gesamter Lernverlauf werden endgültig gelöscht." confirmLabel="Endgültig löschen"
-        onCancel={() => setConfirmDelete(false)} onConfirm={async () => { await deleteCards([...selected]); toast('Gelöscht'); setConfirmDelete(false); endSelect(); }} />
+      <Confirm open={confirmDelete} danger title={t('{n} {cards} löschen?', { n: selected.size, cards: plural(selected.size, 'Karte', 'Karten') })} text={t("Die Karten und ihr gesamter Lernverlauf werden endgültig gelöscht.")} confirmLabel={t("Endgültig löschen")}
+        onCancel={() => setConfirmDelete(false)} onConfirm={async () => { await deleteCards([...selected]); toast(t('Gelöscht')); setConfirmDelete(false); endSelect(); }} />
     </Page>
   );
 }

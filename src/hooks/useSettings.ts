@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect } from 'react';
 import { getSettings } from '../db/repo';
+import { setLang } from '../i18n';
 import { DEFAULT_SETTINGS, FONT_STACK, type AppSettings } from '../types';
 
 const UI_FONTS: Record<string, string> = { system: FONT_STACK.system, rounded: FONT_STACK.rounded, serif: FONT_STACK.serif };
@@ -12,7 +13,7 @@ export function useSettings(): AppSettings {
 export const prefersReducedMotion = () =>
   typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/** Applies appearance settings to the document (light/dark, font sizes). */
+/** Applies appearance and language settings to the document (light/dark, font sizes, interface language). */
 export function useApplySettings(s: AppSettings) {
   useEffect(() => {
     const mq = typeof window.matchMedia === 'function' ? window.matchMedia('(prefers-color-scheme: dark)') : null;
@@ -31,4 +32,8 @@ export function useApplySettings(s: AppSettings) {
   useEffect(() => {
     document.documentElement.style.setProperty('--ui-font', UI_FONTS[s.uiFont] ?? UI_FONTS.rounded);
   }, [s.uiFont]);
+  useEffect(() => {
+    // DEFAULT_SETTINGS is only the placeholder before IndexedDB answered – do not let it override the stored language.
+    if (s !== DEFAULT_SETTINGS) setLang(s.uiLanguage);
+  }, [s]);
 }

@@ -7,6 +7,7 @@ import { db } from '../db/db';
 import { addDeck, buildDeck, deleteDeck, updateDeck, ValidationError } from '../db/repo';
 import { fieldKey } from '../lib/text';
 import { DECK_COLORS, FONT_LABEL, type CustomField, type Deck, type FontKey, type SideStyle, type TextDir } from '../types';
+import { plural, t } from '../i18n';
 
 export const LANGUAGES: { tag: string; label: string; dir?: TextDir; font?: FontKey }[] = [
   { tag: '', label: 'Keine Angabe' },
@@ -34,41 +35,41 @@ export const LANGUAGES: { tag: string; label: string; dir?: TextDir; font?: Font
 ];
 
 const COLOR_LABEL: Record<string, string> = { rose: 'Rosa', lavender: 'Lavendel', mint: 'Mint', peach: 'Pfirsich', sky: 'Himmelblau', lemon: 'Zitrone' };
-const DIR_OPTIONS: { value: TextDir; label: string }[] = [{ value: 'auto', label: 'Automatisch' }, { value: 'ltr', label: 'Links → rechts' }, { value: 'rtl', label: 'Rechts → links' }];
+export const DIR_OPTIONS: { value: TextDir; label: string }[] = [{ value: 'auto', label: 'Automatisch' }, { value: 'ltr', label: 'Links → rechts' }, { value: 'rtl', label: 'Rechts → links' }];
 
 function SideEditor({ title, side, onChange, sample, rich }: { title: string; side: SideStyle; onChange: (s: SideStyle) => void; sample: string; rich: boolean }) {
   const set = (p: Partial<SideStyle>) => onChange({ ...side, ...p });
   return (
     <Card className="space-y-4">
       <h2 className="font-bold">{title}</h2>
-      <Field label="Bezeichnung" hint="Erscheint oben auf der Karte, z. B. „Englisch“, „Begriff“ oder „Formel“.">
+      <Field label={t("Bezeichnung")} hint={t("Erscheint oben auf der Karte, z. B. „Englisch“, „Begriff“ oder „Formel“.")}>
         <input value={side.label} onChange={(e) => set({ label: e.target.value })} className={inputCls} />
       </Field>
-      <Field label="Sprache">
+      <Field label={t("Sprache")}>
         <select value={side.lang} className={inputCls}
           onChange={(e) => { const l = LANGUAGES.find((x) => x.tag === e.target.value)!; set({ lang: l.tag, ...(l.dir ? { dir: l.dir } : { dir: 'auto' }), ...(l.font ? { font: l.font } : {}) }); }}>
-          {LANGUAGES.map((l) => <option key={l.tag} value={l.tag}>{l.label}</option>)}
+          {LANGUAGES.map((l) => <option key={l.tag} value={l.tag}>{t(l.label)}</option>)}
         </select>
       </Field>
       <div>
-        <span className="mb-1.5 block text-sm font-semibold">Schreibrichtung</span>
-        <Segmented label={`Schreibrichtung ${title}`} value={side.dir} onChange={(dir) => set({ dir })} options={DIR_OPTIONS} />
+        <span className="mb-1.5 block text-sm font-semibold">{t('Schreibrichtung')}</span>
+        <Segmented label={t('Schreibrichtung {title}', { title })} value={side.dir} onChange={(dir) => set({ dir })} options={DIR_OPTIONS} />
       </div>
-      <Field label="Schrift">
+      <Field label={t("Schrift")}>
         <select value={side.font} onChange={(e) => set({ font: e.target.value as FontKey })} className={inputCls}>
-          {(Object.keys(FONT_LABEL) as FontKey[]).map((f) => <option key={f} value={f}>{FONT_LABEL[f]}</option>)}
+          {(Object.keys(FONT_LABEL) as FontKey[]).map((f) => <option key={f} value={f}>{t(FONT_LABEL[f])}</option>)}
         </select>
       </Field>
       <label className="block">
-        <span className="mb-1.5 flex justify-between text-sm font-semibold"><span>Schriftgröße</span><span className="tabular-nums text-muted">{Math.round(side.scale * 100)} %</span></span>
-        <input type="range" min={0.7} max={1.8} step={0.05} value={side.scale} onChange={(e) => set({ scale: Number(e.target.value) })} className="w-full accent-[rgb(var(--accent))]" aria-label={`Schriftgröße ${title}`} />
+        <span className="mb-1.5 flex justify-between text-sm font-semibold"><span>{t('Schriftgröße')}</span><span className="tabular-nums text-muted">{Math.round(side.scale * 100)} %</span></span>
+        <input type="range" min={0.7} max={1.8} step={0.05} value={side.scale} onChange={(e) => set({ scale: Number(e.target.value) })} className="w-full accent-[rgb(var(--accent))]" aria-label={t('Schriftgröße {title}', { title })} />
       </label>
       <div>
-        <span className="mb-1.5 block text-sm font-semibold">Schriftstärke</span>
-        <Segmented label={`Schriftstärke ${title}`} value={String(side.weight)} onChange={(w) => set({ weight: Number(w) as SideStyle['weight'] })}
+        <span className="mb-1.5 block text-sm font-semibold">{t('Schriftstärke')}</span>
+        <Segmented label={t('Schriftstärke {title}', { title })} value={String(side.weight)} onChange={(w) => set({ weight: Number(w) as SideStyle['weight'] })}
           options={[{ value: '400', label: 'Normal' }, { value: '500', label: 'Mittel' }, { value: '600', label: 'Halbfett' }, { value: '700', label: 'Fett' }]} />
       </div>
-      <div className="rounded-2xl bg-sunken p-4 text-center" aria-label="Vorschau">
+      <div className="rounded-2xl bg-sunken p-4 text-center" aria-label={t("Vorschau")}>
         <RichText text={sample || side.label} rich={rich} look={sideLook(side)} baseRem={1.75} />
       </div>
     </Card>
@@ -103,30 +104,30 @@ export default function DeckForm() {
         const { id: _omit, ...rest } = { ...deck, fields };
         void _omit;
         await updateDeck(id, rest);
-        toast('Stapel gespeichert'); nav(-1);
+        toast(t('Stapel gespeichert')); nav(-1);
       } else {
         const d = await addDeck({ ...deck, fields });
-        toast('Stapel angelegt'); nav(`/stapel/${d.id}`, { replace: true });
+        toast(t('Stapel angelegt')); nav(`/stapel/${d.id}`, { replace: true });
       }
-    } catch (e) { setError(e instanceof ValidationError ? e.message : 'Speichern fehlgeschlagen.'); }
+    } catch (e) { setError(e instanceof ValidationError ? e.message : t('Speichern fehlgeschlagen.')); }
   };
 
-  if (!ready) return <Page title="Stapel" back>{null}</Page>;
+  if (!ready) return <Page title={t("Stapel")} back>{null}</Page>;
   return (
-    <Page title={id ? 'Stapel bearbeiten' : 'Neuer Stapel'} back>
+    <Page title={id ? t('Stapel bearbeiten') : t('Neuer Stapel')} back>
       <form className="space-y-4 pb-8" onSubmit={(e) => { e.preventDefault(); void save(); }}>
         <Card className="space-y-4">
-          <Field label="Name"><input value={deck.name} onChange={(e) => set({ name: e.target.value })} placeholder="z. B. Englisch B2, Lineare Algebra, Anatomie" className={inputCls} data-testid="in-deck-name" /></Field>
-          <Field label="Fach (optional)" hint="Stapel mit gleichem Fach werden zusammen angezeigt.">
-            <input value={deck.subject} onChange={(e) => set({ subject: e.target.value })} list="subjects" placeholder="Sprachen, Mathematik, Medizin …" className={inputCls} data-testid="in-deck-subject" />
+          <Field label={t("Name")}><input value={deck.name} onChange={(e) => set({ name: e.target.value })} placeholder={t("z. B. Englisch B2, Lineare Algebra, Anatomie")} className={inputCls} data-testid="in-deck-name" /></Field>
+          <Field label={t("Fach (optional)")} hint={t("Stapel mit gleichem Fach werden zusammen angezeigt.")}>
+            <input value={deck.subject} onChange={(e) => set({ subject: e.target.value })} list="subjects" placeholder={t("Sprachen, Mathematik, Medizin …")} className={inputCls} data-testid="in-deck-subject" />
             <datalist id="subjects">{subjects.map((s) => <option key={s} value={s} />)}</datalist>
           </Field>
-          <Field label="Beschreibung (optional)"><input value={deck.description} onChange={(e) => set({ description: e.target.value })} className={inputCls} /></Field>
+          <Field label={t("Beschreibung (optional)")}><input value={deck.description} onChange={(e) => set({ description: e.target.value })} className={inputCls} /></Field>
           <div>
-            <span className="mb-1.5 block text-sm font-semibold">Farbe</span>
-            <div role="radiogroup" aria-label="Farbe" className="flex flex-wrap gap-2">
+            <span className="mb-1.5 block text-sm font-semibold">{t('Farbe')}</span>
+            <div role="radiogroup" aria-label={t("Farbe")} className="flex flex-wrap gap-2">
               {DECK_COLORS.map((c) => (
-                <button key={c} type="button" role="radio" aria-checked={deck.color === c} aria-label={COLOR_LABEL[c]} onClick={() => set({ color: c })}
+                <button key={c} type="button" role="radio" aria-checked={deck.color === c} aria-label={t(COLOR_LABEL[c])} onClick={() => set({ color: c })}
                   className={cx('grid h-11 w-11 place-items-center rounded-2xl border-2 transition', deck.color === c ? 'border-ink' : 'border-transparent')} style={deckTint(c)}>
                   {deck.color === c && <Icon name="check" size={18} />}
                 </button>
@@ -137,8 +138,8 @@ export default function DeckForm() {
 
         <Card className="space-y-1 !py-2">
           {[
-            { k: 'reverse' as const, title: 'Auch rückwärts lernen', hint: 'Rückseite → Vorderseite wird zusätzlich abgefragt und getrennt ausgewertet. Sinnvoll für Vokabeln.' },
-            { k: 'rich' as const, title: 'Formatierung, Formeln und Bilder', hint: 'Markdown (**fett**, Listen), LaTeX ($x^2$, $$…$$), Code-Blöcke (```) und Bilder.' },
+            { k: 'reverse' as const, title: t('Auch rückwärts lernen'), hint: t('Rückseite → Vorderseite wird zusätzlich abgefragt und getrennt ausgewertet. Sinnvoll für Vokabeln.') },
+            { k: 'rich' as const, title: t('Formatierung, Formeln und Bilder'), hint: t('Markdown (**fett**, Listen), LaTeX ($x^2$, $$…$$), Code-Blöcke (```) und Bilder.') },
           ].map((o) => (
             <label key={o.k} className="flex items-center justify-between gap-4 py-2.5">
               <span><span className="block font-medium">{o.title}</span><span className="block text-xs text-muted">{o.hint}</span></span>
@@ -147,35 +148,35 @@ export default function DeckForm() {
           ))}
         </Card>
 
-        <SideEditor title="Vorderseite" side={deck.front} onChange={(front) => set({ front })} rich={deck.rich} sample={SAMPLE_TEXT[deck.front.lang] ?? (deck.rich ? 'Begriff $x^2$' : 'Begriff')} />
-        <SideEditor title="Rückseite" side={deck.back} onChange={(back) => set({ back })} rich={deck.rich} sample={SAMPLE_TEXT[deck.back.lang] ?? 'Antwort'} />
+        <SideEditor title={t("Vorderseite")} side={deck.front} onChange={(front) => set({ front })} rich={deck.rich} sample={SAMPLE_TEXT[deck.front.lang] ?? (deck.rich ? t('Begriff $x^2$') : t('Begriff'))} />
+        <SideEditor title={t("Rückseite")} side={deck.back} onChange={(back) => set({ back })} rich={deck.rich} sample={SAMPLE_TEXT[deck.back.lang] ?? t('Antwort')} />
 
         <Card className="space-y-3">
           <div>
-            <h2 className="font-bold">Eigene Felder</h2>
-            <p className="text-xs text-muted">Zusätzliche Angaben, die nach dem Umdrehen erscheinen – z. B. Umschrift, Beispielsatz, Einheit, Quelle.</p>
+            <h2 className="font-bold">{t('Eigene Felder')}</h2>
+            <p className="text-xs text-muted">{t('Zusätzliche Angaben, die nach dem Umdrehen erscheinen – z. B. Umschrift, Beispielsatz, Einheit, Quelle.')}</p>
           </div>
           {deck.fields.map((f, i) => (
             <div key={f.key} className="flex items-center gap-2">
-              <input value={f.label} onChange={(e) => setField(i, { label: e.target.value })} aria-label="Feldname" placeholder="Feldname" className={cx(inputCls, 'flex-1')} />
-              <select aria-label={`Richtung ${f.label}`} value={f.dir} onChange={(e) => setField(i, { dir: e.target.value as TextDir })} className="min-h-[3rem] rounded-2xl border border-line bg-surface px-2 text-sm">
-                <option value="auto">Auto</option><option value="ltr">LTR</option><option value="rtl">RTL</option>
+              <input value={f.label} onChange={(e) => setField(i, { label: e.target.value })} aria-label={t("Feldname")} placeholder={t("Feldname")} className={cx(inputCls, 'flex-1')} />
+              <select aria-label={t('Richtung {name}', { name: f.label })} value={f.dir} onChange={(e) => setField(i, { dir: e.target.value as TextDir })} className="min-h-[3rem] rounded-2xl border border-line bg-surface px-2 text-sm">
+                <option value="auto">{t('Auto')}</option><option value="ltr">{t('LTR')}</option><option value="rtl">{t('RTL')}</option>
               </select>
               <IconButton icon="trash" label={`Feld ${f.label} entfernen`} className="text-muted" onClick={() => set({ fields: deck.fields.filter((_, j) => j !== i) })} />
             </div>
           ))}
           <Button variant="soft" size="sm" onClick={() => set({ fields: [...deck.fields, { key: fieldKey(`feld ${deck.fields.length + 1}`, deck.fields.map((x) => x.key)), label: '', dir: 'auto', font: 'system' }] })} data-testid="add-field">
-            <Icon name="plus" size={18} />Feld hinzufügen
+            <Icon name="plus" size={18} />{t('Feld hinzufügen')}
           </Button>
         </Card>
 
         {error && <p role="alert" className="rounded-2xl bg-bad-soft p-3 text-sm font-medium text-bad">{error}</p>}
-        <Button type="submit" size="lg" className="w-full" data-testid="save-deck">Speichern</Button>
-        {id && <Button variant="danger" className="w-full" onClick={() => setConfirmDel(true)}>Stapel löschen</Button>}
+        <Button type="submit" size="lg" className="w-full" data-testid="save-deck">{t('Speichern')}</Button>
+        {id && <Button variant="danger" className="w-full" onClick={() => setConfirmDel(true)}>{t('Stapel löschen')}</Button>}
       </form>
-      <Confirm open={confirmDel} danger title={`„${deck.name}“ löschen?`} confirmLabel="Endgültig löschen"
-        text={`Der Stapel mit ${cardCount} ${cardCount === 1 ? 'Karte' : 'Karten'}, allen Lektionen und dem gesamten Lernverlauf wird gelöscht. Tipp: Erstelle vorher eine Sicherung.`}
-        onCancel={() => setConfirmDel(false)} onConfirm={async () => { await deleteDeck(id!); toast('Stapel gelöscht'); nav('/stapel', { replace: true }); }} />
+      <Confirm open={confirmDel} danger title={t('„{name}“ löschen?', { name: deck.name })} confirmLabel={t("Endgültig löschen")}
+        text={t('Der Stapel mit {n} {cards}, allen Lektionen und dem gesamten Lernverlauf wird gelöscht. Tipp: Erstelle vorher eine Sicherung.', { n: cardCount, cards: plural(cardCount, 'Karte', 'Karten') })}
+        onCancel={() => setConfirmDel(false)} onConfirm={async () => { await deleteDeck(id!); toast(t('Stapel gelöscht')); nav('/stapel', { replace: true }); }} />
     </Page>
   );
 }

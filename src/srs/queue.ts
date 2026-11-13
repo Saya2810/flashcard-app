@@ -167,11 +167,11 @@ export const MAX_RELEARN = 3;
  * `rest` is the queue WITHOUT the card that was just answered.
  * If no other card is left, it comes back directly at most once.
  */
-export function requeueWrong(rest: QueueItem[], item: QueueItem): QueueItem[] {
+export function requeueWrong<T extends { relearn: boolean; attempts: number }>(rest: T[], item: T): T[] {
   const attempts = item.attempts + 1;
   if (attempts > MAX_RELEARN) return rest;
   if (rest.length === 0 && attempts > 1) return rest;
-  const again: QueueItem = { ...item, relearn: true, attempts };
+  const again: T = { ...item, relearn: true, attempts };
   const pos = Math.min(RELEARN_GAP, rest.length);
   return [...rest.slice(0, pos), again, ...rest.slice(pos)];
 }

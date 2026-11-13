@@ -2,6 +2,7 @@ import { dupKey, fieldKey } from '../lib/text';
 import type { CustomField } from '../types';
 import { db, type AppDB } from './db';
 import { buildCard, clampPriority, deckIdByName, lessonIdByName } from './repo';
+import { t } from '../i18n';
 
 /** What a CSV column is used for. 'field' = a custom field of the deck (label given by the user). */
 export type ColumnTarget = 'ignore' | 'front' | 'back' | 'alt' | 'deck' | 'lesson' | 'priority' | 'tags' | 'notes' | 'field';
@@ -54,7 +55,7 @@ export function guessMapping(header: string[]): ColumnMap[] | null {
 
 /** Without a header: column 1 = front, 2 = back, everything else ignored. */
 export const defaultMapping = (n: number): ColumnMap[] =>
-  Array.from({ length: n }, (_, i) => ({ target: i === 0 ? 'front' : i === 1 ? 'back' : 'ignore', label: `Spalte ${i + 1}` }));
+  Array.from({ length: n }, (_, i) => ({ target: i === 0 ? 'front' : i === 1 ? 'back' : 'ignore', label: t('Spalte {n}', { n: i + 1 }) }));
 
 export interface ImportRow {
   line: number;
@@ -92,9 +93,9 @@ export function rowsFromTable(rows: string[][], mapping: ColumnMap[], firstLine 
         case 'field': if (v && m.label.trim()) row.fields[m.label.trim()] = v; break;
       }
     });
-    if (!row.front) row.error = 'Vorderseite fehlt';
-    else if (!row.back) row.error = 'Rückseite fehlt';
-    else if (prioRaw && !/^[1-5]$/.test(prioRaw)) row.error = `Priorität „${prioRaw}“ ungültig (1–5)`;
+    if (!row.front) row.error = t('Vorderseite fehlt');
+    else if (!row.back) row.error = t('Rückseite fehlt');
+    else if (prioRaw && !/^[1-5]$/.test(prioRaw)) row.error = t('Priorität „{value}“ ungültig (1–5)', { value: prioRaw });
     else if (prioRaw) row.priority = clampPriority(prioRaw);
     return row;
   });
@@ -114,7 +115,7 @@ export function parseBulk(text: string): ImportRow[] {
     const [back = '', ...alt] = splitAlt(backRaw);
     out.push({
       line: i + 1, deckName: '', lessonName: '', front, back, altBack: alt, fields: {}, notes: rest.join('; '), tags: [], priority: 3, duplicate: false,
-      error: parts.length < 2 || !front || !back ? 'Trennzeichen „;“ oder Rückseite fehlt' : null,
+      error: parts.length < 2 || !front || !back ? t('Trennzeichen „;“ oder Rückseite fehlt') : null,
     });
   });
   return out;
