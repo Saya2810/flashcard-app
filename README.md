@@ -1,41 +1,61 @@
-# Persisch Karten – Persian–German flashcards
+# Lernkarten – flashcards for any subject
 
-A free, offline-first flashcard app for learning Persian (Farsi) ↔ German vocabulary on the iPhone.
-It is a Progressive Web App: you open it once in Safari, add it to the Home Screen, and from then on it
-runs like a native app – without the App Store, an account, a server or any subscription.
+A free, offline-first flashcard app for the iPhone (and any modern browser). Learn vocabulary in any
+language pair – including right-to-left scripts such as Persian, Arabic and Hebrew – as well as
+mathematical definitions, physics equations, code snippets, medical terms or history dates.
+
+It is a Progressive Web App: open it once in Safari, add it to the Home Screen, and from then on it runs
+like a native app – no App Store, no account, no server, no subscription, no ads.
 
 The user interface is in **German**; code, comments and documentation are in English.
 
+**Open the app:** https://saya2810.github.io/flashcard-app/
+
 <p>
-  <img src="docs/screenshots/home.png" width="190" alt="Home screen with daily goal and quick links">
-  <img src="docs/screenshots/card-front.png" width="190" alt="Flashcard front showing a Persian word">
-  <img src="docs/screenshots/card-back.png" width="190" alt="Flashcard back with the two answer buttons">
-  <img src="docs/screenshots/problems.png" width="190" alt="Problem words table with error counts and rates">
+  <img src="docs/screenshots/home.png" width="180" alt="Home screen with daily goal and decks">
+  <img src="docs/screenshots/decks.png" width="180" alt="Decks grouped by subject">
+  <img src="docs/screenshots/card.png" width="180" alt="Persian flashcard with transliteration and example">
+  <img src="docs/screenshots/typed-answer.png" width="180" alt="Formula card with typed-answer comparison">
+  <img src="docs/screenshots/dark.png" width="180" alt="Study session in dark mode">
 </p>
+
+> Looking for the original Persian–German vocabulary trainer? See
+> [The original Persian–German version](#the-original-persiangerman-version).
 
 ## Features
 
-- **Flashcards with exactly two buttons** – *Falsch* / *Richtig*. Tap to flip, no typing, no AI grading.
-  Smooth 3D flip that respects “Reduce Motion”.
-- **Real spaced repetition (FSRS)** via [`ts-fsrs`](https://github.com/open-spaced-repetition/ts-fsrs),
-  adapted to binary feedback (see [Learning algorithm](#learning-algorithm)).
-- **Both directions tracked separately** – Persian → German and German → Persian each have their own
-  memory state, statistics and due dates.
-- **Priority 1–5** per word that shortens review intervals without overriding the memory model.
-- **Problem words** (*Problemvokabeln*) detected automatically, with sample-size safeguards, sorting by
-  most mistakes / highest error rate / most recent mistake / weakest memory, and targeted practice.
-- **Six study modes**: smart, problem words, new words, lesson, exam prep, free practice
-  (the last one never touches the schedule).
-- **Statistics**: today, totals, streaks, status distribution, daily activity, success rate, progress
-  over time, hardest words, 14-day review forecast, per-lesson and per-word stats with full review history.
-- **Vocabulary management**: unlimited words and lessons, multiple accepted translations, transliteration,
-  grammar, example sentences, notes, tags, search, sort, filters, bulk move/delete, duplicate detection.
-- **Import / export**: CSV import with column mapping, preview, validation and duplicate detection; quick
-  paste (`آمدن ; kommen`); CSV export; full versioned JSON backup and safe restore (merge or replace).
-- **Persian done properly**: RTL via `dir`/`lang` attributes (never reversed strings), bundled Vazirmatn
-  font, search that treats Arabic ي/ك and Persian ی/ک (and more) as equal without altering stored text.
-- **Offline & private**: everything lives in IndexedDB on the device; the service worker caches the app.
-- Light and dark mode, adjustable card and Persian font sizes, iOS safe areas, large touch targets.
+**Organise anything**
+- Unlimited **decks** (*Stapel*), grouped by **subject** (*Fach*), each split into optional **lessons**.
+- Each deck defines its two sides: label, language, writing direction (auto / LTR / RTL), font, size and
+  weight – so a Persian deck looks different from a calculus deck.
+- **Custom fields** per deck (transliteration, example sentence, unit, source …), shown after flipping.
+- Several accepted answers per card, notes, tags and a **priority** from 1 to 5.
+
+**Rich content**
+- Markdown (**bold**, lists, tables, quotes), **LaTeX** with KaTeX (`$…$` inline, `$$…$$` display),
+  fenced **code blocks**, and **images** (stored on the device, scaled down automatically).
+- Correct bidirectional text everywhere via `dir`/`lang` attributes – strings are never reversed.
+- Bundled Vazirmatn font for Persian/Arabic; system, rounded, serif and monospace fonts for everything else.
+
+**Learning**
+- Flip the card, then decide yourself: exactly two buttons, *Falsch* and *Richtig*.
+- **Optional typed-answer mode:** type your answer before flipping; afterwards your answer and the
+  solution are shown with every extra, wrong or missing character highlighted in red. The app never
+  grades the answer – only your *Richtig*/*Falsch* counts.
+- Real spaced repetition (**FSRS**), tracked separately for front → back and back → front.
+- Automatic **problem-card** detection with sample-size safeguards and targeted practice.
+- Six modes: smart, problem cards, new cards, decks & lessons, exam prep, free browsing (doesn't affect the schedule).
+
+**Statistics** – today, totals, streaks, status distribution, daily activity, success rate, progress over
+time, hardest cards, a 14-day forecast, per-deck and per-lesson stats, and a full review history per card
+(including what you typed).
+
+**Data** – CSV import into one deck or many decks and lessons at once with free column mapping, quick paste,
+duplicate detection and a preview; CSV export; complete versioned JSON backups with safe restore
+(merge or replace). Everything is stored locally in IndexedDB and works offline.
+
+**Design** – soft pink pastel palette, rounded components, smooth flip animation, light and dark mode,
+iOS safe areas, large touch targets, respects “Reduce Motion”.
 
 ## Quick start (macOS)
 
@@ -50,7 +70,7 @@ npm run dev
 
 Open http://localhost:5173.
 
-> **zsh tip:** don’t paste `# comments` after commands – zsh treats `#` as an argument unless you run
+> **zsh tip:** don't paste `# comments` after commands – zsh treats `#` as an argument unless you run
 > `setopt interactive_comments` (add it to `~/.zshrc` to make it permanent).
 
 | Command | What it does |
@@ -58,255 +78,203 @@ Open http://localhost:5173.
 | `npm run dev` | development server on http://localhost:5173 |
 | `npm run build` | type-check and build the production app into `dist/` |
 | `npm run preview` | serve the production build on http://localhost:4173 (with service worker) |
-| `npm test` | 72 unit and component tests (Vitest + React Testing Library) |
+| `npm test` | 97 unit and component tests (Vitest + React Testing Library) |
 | `npx playwright install chromium` | one-time browser download for the end-to-end tests |
-| `npm run test:e2e` | 5 end-to-end tests against the production build in an iPhone viewport |
+| `npm run test:e2e` | 7 end-to-end tests against the production build in an iPhone viewport |
 
 ## Installing on the iPhone
 
-### Local development is not deployment
+1. Open **https://saya2810.github.io/flashcard-app/** in **Safari**.
+2. Tap Share → **Add to Home Screen** → **Add**.
+3. Launch the app from the icon and wait for “Die App ist jetzt offline nutzbar”.
 
-`npm run dev` only listens on `localhost`, which the iPhone cannot reach. `npm run dev:netz` /
-`npm run preview` also expose a LAN address (e.g. `http://192.168.1.20:4173`) that is fine for a quick
-look on the phone – but service workers require **HTTPS**, so over plain `http://` there is no offline
-mode and the app stops working once the Mac is off.
+To check offline mode: open the app once, turn on Airplane Mode, and open it again from the icon.
+When a new version has been deployed, the app offers *Aktualisieren* the next time it is online.
 
-For real use, the contents of `dist/` must be served once over HTTPS. It is a static site, so free
-hosting is enough. The iPhone downloads all assets on first launch; after that, no internet connection is
-needed. Your vocabulary never leaves the phone – the host only serves the program code.
+The Home Screen app and a Safari tab have **separate storage**; always use the installed app.
 
-### Option A: GitHub Pages (this repository)
+### Hosting your own copy
 
-The workflow in `.github/workflows/deploy.yml` runs the tests, builds the app and publishes it on every
-push to `main`. GitHub Pages must be set to **Settings → Pages → Source: GitHub Actions** once.
-The app is then available at:
+`npm run dev` only listens on `localhost`, which the iPhone cannot reach. Service workers need **HTTPS**,
+so for real use `dist/` must be served once over HTTPS – free static hosting is enough:
 
-**https://saya2810.github.io/flashcard-app/**
+- **GitHub Pages** (used here): `.github/workflows/deploy.yml` tests and builds on every push to `main`.
+  Set *Settings → Pages → Source: GitHub Actions* once.
+- **Netlify Drop:** run `npm run build` and drag `dist` onto https://app.netlify.com/drop.
+- **Cloudflare Pages:** build command `npm run build`, output directory `dist`.
 
-The build uses relative paths (`base: './'`) and hash routing, so it works in a sub-path without changes.
-
-### Option B: Netlify Drop
-
-Run `npm run build`, open https://app.netlify.com/drop and drag the `dist` folder into the page.
-Cloudflare Pages works too (build command `npm run build`, output directory `dist`).
-
-### Add to Home Screen
-
-1. Open the HTTPS URL in **Safari**.
-2. Tap the Share button → **Add to Home Screen** → **Add**.
-3. Launch the app from the new icon and wait for “Die App ist jetzt offline nutzbar”.
-
-The Home Screen app and a regular Safari tab have **separate storage**. Use only the installed app. If you
-already entered data in a tab, create a backup there and restore it in the installed app.
-
-### Verify offline mode
-
-Open the app once with a connection, close it, turn on Airplane Mode, open it from the icon, study a
-session and look at the statistics. When a new version has been deployed, the app offers *Aktualisieren*
-the next time it is online.
+The build uses relative paths and hash routing, so it works in any sub-path.
 
 ## Backups – please read
 
-All data is stored only in the installed app’s IndexedDB. This is **not** cloud sync: deleting the app
-from the Home Screen or clearing website data in iOS Settings deletes your vocabulary and progress.
-The app asks the browser for persistent storage (`navigator.storage.persist()`), but that is not a
-guarantee either.
+All data lives only on the device. This is **not** cloud sync: deleting the app or clearing website data
+deletes your cards and progress. The app asks for persistent storage, but that is not a guarantee.
 
-- **Einstellungen → Vollständige Sicherung erstellen (JSON)** opens the iOS share sheet; save to
-  iCloud Drive (“Save to Files”) or mail it to yourself.
-- A backup contains all items, lessons, priorities, tags, every single review, scheduling states, daily
-  statistics, sessions and settings. Backups are versioned and fully validated before anything is written.
-- **Restore** shows what the file contains and then offers:
-  - **Zusammenführen** (merge, default) – only adds what is missing; existing items and their progress are
-    never overwritten.
-  - **Alles ersetzen** (replace) – requires a second explicit confirmation and runs in a single
-    transaction, so a failure leaves the old data intact.
-- The home screen shows a gentle reminder when the last backup is older than two weeks.
-- **CSV export** contains the word list only (for Excel/Numbers), not the learning progress.
+- *Einstellungen → Vollständige Sicherung erstellen (JSON)* opens the share sheet – save it to iCloud Drive.
+- A backup contains all decks, lessons, cards, images, priorities, tags, every single review, scheduling
+  states, daily statistics, sessions and settings. It is versioned and fully validated before restoring.
+- **Restore:** *Zusammenführen* (merge, default) only adds what is missing and never overwrites existing
+  progress; *Alles ersetzen* needs a second confirmation and runs in one transaction.
+- Backups of the original Persian–German app can be restored here too.
+- The home screen gently reminds you when the last backup is older than two weeks.
+
+## The original Persian–German version
+
+The first version of this project was a Persian–German vocabulary trainer. It is preserved unchanged on
+the branch [`legacy/persian-german`](https://github.com/Saya2810/flashcard-app/tree/legacy/persian-german)
+and is still deployed at:
+
+**https://saya2810.github.io/flashcard-app/legacy/**
+
+Moving to the new app loses nothing:
+
+- On first start, the new app **copies** the data of the original app (IndexedDB `persisch-karten`) into a
+  deck „Persisch – Deutsch“: all words, alternative translations, transliteration, grammar, example
+  sentences, notes, lessons, priorities, tags, both learning directions, full review history, daily
+  statistics and settings. The original database is only read, never changed.
+- *Einstellungen → Erneut aus der Persisch-Version übernehmen* copies words added there later
+  (existing cards are never overwritten).
+- Backup files of the original app (`persisch-karten-backup`) can be restored in the new app.
+- CSV files exported by the original app import directly (headers `Persian`, `German`, `Transliteration` …
+  are recognised).
+
+To run the old version locally: `git checkout legacy/persian-german && npm install && npm run dev`.
 
 ## Project structure
 
 ```
 src/
-  types.ts              data types and default settings
+  types.ts              data types, fonts, defaults
   db/
-    db.ts               Dexie schema, versioning, persistent-storage request
-    repo.ts             items, lessons, priority, settings (with validation)
-    import.ts           CSV column mapping, quick entry, duplicate detection
+    db.ts               Dexie schema „lernkarten“, versioning
+    repo.ts             decks, lessons, cards, priority, settings (with validation)
+    media.ts            image storage (scaled down), clean-up of unused images
+    import.ts           CSV column mapping (incl. custom fields), quick entry, duplicates
     backup.ts           JSON backup, validation, restore, CSV export
-    sample.ts           load / remove sample data
+    legacy.ts           migration from the Persian–German app (database and backup files)
+    sample.ts           sample decks: Persian, calculus, physics, Python
   srs/
     scheduler.ts        FSRS wrapper (ts-fsrs), priority → target retention
-    metrics.ts          problem-word rules, learning status, Wilson bound
+    metrics.ts          problem-card rules, learning status, Wilson bound
     review.ts           recordAnswer(): stores one answer atomically
-    queue.ts            session building per mode, re-queueing wrong cards
-  stats/stats.ts        overview, daily series, forecast, lesson and problem statistics
-  components/           Flashcard, charts (hand-written SVG), UI primitives, update prompt
-  pages/                Home, Learn, Session, vocabulary list/form/detail, lessons,
-                        problem words, import, statistics, settings
-  lib/                  local-day date helpers, Persian normalisation, CSV
+    queue.ts            session building per mode, deck directions, re-queueing wrong cards
+  stats/stats.ts        overview, daily series, forecast, deck/lesson/problem statistics
+  lib/
+    markdown.ts         Markdown + KaTeX + sanitising (DOMPurify)
+    diff.ts             grapheme-level diff for typed answers
+    text.ts             search/duplicate normalisation for any script, plain text
+    dates.ts, csv.ts    local calendar days, CSV parsing/writing
+  components/           Flashcard, RichText, AnswerDiff, charts (SVG), UI primitives
+  pages/                Home, Learn, Session, Decks, DeckDetail, DeckForm, CardList, CardForm,
+                        CardDetail, Problems, Import, Stats, Settings
 e2e/app.spec.ts         end-to-end tests
-public/                 icons, beispiel.csv (sample import file)
 ```
 
-Runtime dependencies: React, React Router, Dexie (+ hooks), ts-fsrs and the Vazirmatn font (bundled –
-no request to Google Fonts). Charts are plain SVG.
+Runtime dependencies: React, React Router, Dexie, ts-fsrs, marked, KaTeX, DOMPurify and the Vazirmatn font.
+Everything is bundled and precached; nothing is loaded from third-party servers.
 
 ## Data model
 
-IndexedDB database `persisch-karten`, schema version 1 (`src/db/db.ts`):
+IndexedDB database `lernkarten`, schema version 1 (`src/db/db.ts`):
 
 | Table | Key | Contents |
 |---|---|---|
-| `vocab` | `id` | item fields, `lessonId`, `priority`, `tags` (multi-entry index), cached `status`/`problem` |
-| `lessons` | `id` | name, description, last practised |
-| `states` | `vocabId\|direction` | **one scheduling state per item and direction**: FSRS values, due date, counters, streaks |
-| `reviews` | `id` | every answer: item, direction, timestamp, local day, correct/incorrect, session, kind, scheduling metadata |
-| `sessions` | `id` | study sessions with mode and result |
-| `days` | `YYYY-MM-DD` | daily activity and a snapshot of the status distribution |
+| `decks` | `id` | name, subject, colour, side styles (label, lang, dir, font, scale, weight), reverse, rich, custom fields |
+| `lessons` | `id` | deck, name, description, last practised |
+| `cards` | `id` | deck, lesson, front, back, accepted answers, custom field values, notes, priority, tags, cached status |
+| `media` | `id` | images as data URLs, referenced from text as `![](media:ID)` |
+| `states` | `cardId\|direction` | one scheduling state per card and direction (`fwd`, `rev`) |
+| `reviews` | `id` | every answer: card, deck, direction, timestamp, local day, result, session, kind, typed text, FSRS metadata |
+| `sessions` | `id` | study sessions |
+| `days` | `YYYY-MM-DD` | daily activity and status snapshot |
 | `settings` | `'app'` | settings |
 
-Tags are not a separate table; they are derived from the multi-entry index on `vocab.tags`. Counters in
-`states` and `days` are caches for fast queries – the full history is in `reviews`. Timestamps are epoch
-milliseconds; calendar days are computed in local time and are DST-safe (`src/lib/dates.ts`).
-
-**Migrations:** for schema changes, append a new `this.version(n).stores(…).upgrade(…)` in `db.ts`
-(an example is in the comment there); Dexie runs missing steps when the database is opened. Backup files
-carry their own format version; `migrateBackup()` in `backup.ts` is the place for future upgrades.
-Backups from a newer app version are rejected.
+Counters in `states`/`days` are caches; the full history is in `reviews`. Timestamps are epoch
+milliseconds; calendar days use local time and are DST-safe. For schema changes, append a new
+`this.version(n)…upgrade()` in `db.ts`; backup files have their own format version (`migrateBackup()`).
 
 ## Learning algorithm
 
-Three layers are kept strictly separate.
+Three layers are kept separate.
 
-### 1. Long-term scheduling: FSRS
+**1. Long-term scheduling (FSRS).** `ts-fsrs` with default parameters, per card and direction.
+*Richtig* → FSRS „Good“, *Falsch* → „Again“; „Hard“/„Easy“ are never used, so difficulty falls slowly on
+correct answers and rises on every mistake. FSRS's minute-level learning steps are off: FSRS sees exactly
+one rating per card and session – the first, unprepared answer. Due dates snap to the start of a local day,
+no fuzz, maximum interval 365 days. Typed text never influences scheduling.
 
-`ts-fsrs` with default parameters. Each item has, per direction, its own *stability* (days until the
-probability of recall drops to 90 %) and *difficulty*.
+**2. Short-term relearning.** A wrong card returns after 4 other cards (or at the end), at most 3 times per
+session. These repeats are logged but change neither FSRS nor the error rate.
 
-| Button | FSRS rating |
-|---|---|
-| Richtig (correct) | Good |
-| Falsch (incorrect) | Again |
+**3. Priority (1–5)** sets the target retention – 80 %, 85 %, 90 %, 93 %, 95 % – so important cards are
+reviewed before they fade as far as unimportant ones. It also weights urgency within a session (0.8–1.2)
+and orders new cards. Changing it only recomputes the due date.
 
-Assumptions introduced by binary feedback:
+**Directions.** Every deck is studied front → back. Decks with *Auch rückwärts lernen* are additionally
+studied back → front, with independent statistics. Choosing „Rück → Vorder“ for a session affects only
+those decks; forward-only decks stay front → back.
 
-- “Hard” and “Easy” are never used. Difficulty therefore decreases only slowly on correct answers and
-  increases noticeably on every mistake, so intervals grow somewhat more cautiously than with four buttons.
-- FSRS’s own minute-level learning steps are disabled (`enable_short_term: false`). FSRS sees exactly
-  **one** rating per card and session: the first, unprepared answer.
-- First answer correct → next review after about 2–3 days. First answer wrong → the next day.
-- Due dates snap to the start of a local calendar day; “due on day X” applies from the morning.
-- No interval fuzz; maximum interval 365 days.
-- The parameters are the general defaults, not optimised on your own review history.
+**Problem cards** – a direction counts as a problem if (1) two or more mistakes in a row, (2) at least 4
+answers and 3+ mistakes among the last 6, or (3) at least 5 answers, an error rate ≥ 40 % and not yet three
+correct in a row. Fewer than 4 answers are shown separately as *Noch zu wenig Daten*. Sorting by error rate
+uses the lower Wilson bound, so „2 of 2 wrong“ doesn't outrank „8 of 12 wrong“.
 
-### 2. Short-term relearning within a session
+**Learning status** (per direction; a card shows its weakest practised direction): *Neu* (never answered),
+*Unsicher* (problem or last answer wrong), *In Bearbeitung* (stability < 7 days), *Gut gelernt*
+(≥ 7 days), *Sicher beherrscht* (≥ 30 days and 3+ correct in a row).
 
-A wrong card comes back in the same session after 4 other cards (or at the end if fewer remain), at most
-3 times per session. These repeats are logged as *in-session repeats* but change neither FSRS nor the error
-rate – otherwise one mistake would be counted several times.
-
-### 3. Priority (1–5)
-
-Priority does not change the memory state; it changes the **target retention**:
-
-| Priority | 1 | 2 | 3 | 4 | 5 |
-|---|---|---|---|---|---|
-| Target | 80 % | 85 % | 90 % | 93 % | 95 % |
-
-Important words are reviewed before they have faded as far as unimportant ones, i.e. shorter intervals
-for the same memory state. Within a session, priority also weights urgency (0.8 to 1.2) and orders new
-words. A frequently missed priority-5 word therefore appears much more often than a well-known priority-1
-word. Changing the priority only recomputes the due date.
-
-### Problem words
-
-A direction is a problem word if any of these holds:
-
-1. two or more mistakes in a row,
-2. at least 4 answers and 3 or more mistakes among the last 6,
-3. at least 5 answers, an error rate of 40 % or more and not yet 3 correct answers in a row.
-
-A single mistake is not enough. Items with mistakes but fewer than 4 answers are listed separately under
-*Noch zu wenig Daten* (not enough data). “Highest error rate” sorts by the lower Wilson bound so that
-“2 of 2 wrong” does not outrank “8 of 12 wrong”. Words drop out again on their own once they recover.
-
-### Learning status
-
-Per direction:
-
-| Status (UI) | Criterion |
-|---|---|
-| Neu (new) | never answered in a scheduled review |
-| Unsicher (shaky) | problem word, or last answer incorrect |
-| In Bearbeitung (in progress) | stability below 7 days |
-| Gut gelernt (well learned) | stability of 7 days or more |
-| Sicher beherrscht (mastered) | stability of 30 days or more and at least 3 correct answers in a row |
-
-An item’s overall status is the weakest of the directions already practised.
-
-## Study modes
+**Study modes**
 
 | Mode (UI) | Selection | Affects schedule |
 |---|---|---|
-| Intelligentes Lernen (smart) | due cards by urgency; up to 20 % of the session for not-yet-due problem words; up to 25 % new words (capped by “new words per day”) | yes |
-| Problemvokabeln | detected problem words, or individually selected words | yes |
-| Neue Vokabeln | never practised in the chosen direction, high priority first | yes |
-| Lektion lernen | everything in the chosen lessons: due, new, then the rest | yes |
-| Prüfungsvorbereitung (exam prep) | choose lessons, priorities, number of cards and direction; weakest first | yes |
-| Freies Lernen (free practice) | browse and flip cards | **no** – no answers, no statistics |
+| Intelligentes Lernen | due cards by urgency; up to 20 % not-yet-due problem cards; up to 25 % new cards (daily limit) | yes |
+| Problemkarten | detected problem cards, or individually selected cards | yes |
+| Neue Karten | never studied in the chosen direction, high priority first | yes |
+| Stapel & Lektionen | everything in the chosen decks/lessons: due, new, then the rest | yes |
+| Prüfungsvorbereitung | decks, lessons, priorities, count and direction; weakest first | yes |
+| Freies Lernen | browse and flip | **no** |
 
-Ordering is always deterministic. In mixed direction, each item appears at most once per session, in its
-more urgent direction; new words start with Persian → German.
+## Typed-answer mode
+
+Enable it under *Einstellungen → Antwort eintippen*. The comparison is a longest-common-subsequence diff
+over grapheme clusters, so Persian/Arabic letters, combining accents and emoji stay intact. It compares
+against the closest accepted answer, can ignore case and punctuation, and strips Markdown and `$` delimiters
+from the solution (type `E = mc^2` for `$E = mc^2$`). It only highlights differences – it never decides.
 
 ## Import formats
 
 **CSV** (UTF-8; comma, semicolon or tab; see `public/beispiel.csv`):
 
 ```
-Persian,German,Transliteration,Lesson,Priority,Notes,Tags
-آمدن,kommen | ankommen,âmadan,Lektion 3,5,,Verb
+Deck,Lesson,Front,Back,Alternatives,Priority,Tags,Notes,Umschrift
+Persisch – Deutsch,Lektion 3,آمدن,kommen,ankommen,5,Verb,,âmadan
+Mathematik,Ableitungen,Ableitung von $e^x$,$e^x$,,4,,,
 ```
 
-Separate multiple German translations with `|` and multiple tags with commas. Columns can be mapped freely
-in the import screen; unknown lessons are created. Files that are not valid UTF-8 are rejected instead of
-being imported as mojibake.
+Every column can be mapped to front, back, more answers, deck, lesson, priority, tags, notes, a **custom
+field** (any name) or ignored. With deck/lesson columns, many decks and lessons are created in one go;
+otherwise all rows go into the chosen deck and lesson. Multiple answers are separated by `|`. Non-UTF-8
+files are rejected instead of being imported as mojibake.
 
-**Quick entry** (one item per line):
-
-```
-آمدن ; kommen
-رفتن ; gehen, fahren ; raftan
-```
-
-Both show a preview with per-line errors and duplicates before importing.
+**Quick paste** – one card per line: `Vorderseite ; Rückseite ; optional note`.
 
 ## Testing status and known limits
 
 Actually executed (Linux, Node 22):
 
-- `npm test`: 72/72 passing.
-- `npm run test:e2e`: 5/5 passing in Chromium with iPhone 14 emulation against the production build.
-- `npm run build`: succeeds; about 590 KB precached for offline use.
+- `npm test`: 97/97 passing (engine, queue, import/export, backup, legacy migration, diff, Markdown/LaTeX,
+  sanitising, components and pages).
+- `npm run test:e2e`: 7/7 passing in Chromium with iPhone 14 emulation against the production build,
+  including offline mode and migration from the old database.
+- Both versions were served side by side under a sub-path (as on GitHub Pages) and checked in a browser:
+  each has its own service worker, both work offline, and data flows only from old to new.
 
-Not verified:
+Not verified: **no test on a real iPhone or in Safari/WebKit**; the iOS share sheet for backups and the
+image picker have not been tried on a device; the UI has not been hand-tested with thousands of cards
+(session building is tested with 5,000).
 
-- **No test on a real iPhone or in Safari/WebKit.** Layout, offline mode and persistence have only been
-  verified in Chromium. Before relying on it, go through it once on the device: install, Airplane Mode,
-  create and restore a backup.
-- The iOS share sheet for saving backups is implemented but not tried on a device.
-- Session building is tested with 5,000 items; the UI itself has not been hand-tested with that many.
-
-Deliberate limitations: no sync between devices (transfer via backup file only), no reminder notifications.
-Deleting an item keeps the daily activity counts but removes its individual review history.
-
-## Kurzanleitung (Deutsch)
-
-1. `npm install`, dann `npm run dev` und http://localhost:5173 öffnen.
-2. Zum Installieren auf dem iPhone die Adresse https://saya2810.github.io/flashcard-app/ in Safari
-   öffnen → Teilen → „Zum Home-Bildschirm“.
-3. Die App immer über das Symbol öffnen und regelmäßig unter *Einstellungen* eine Sicherung erstellen –
-   die Daten liegen nur auf dem Gerät.
+Deliberate limitations: no sync between devices (use backup files), no reminders, no automatic grading,
+no syntax highlighting inside code blocks (monospace only).
 
 ## License
 

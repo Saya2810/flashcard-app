@@ -1,112 +1,144 @@
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 
-async function addWord(page: Page, persian: string, german: string) {
-  await page.goto('/#/vokabeln/neu');
-  await page.getByTestId('in-persian').fill(persian);
-  await page.getByTestId('in-german').fill(german);
-  await page.getByTestId('save-vocab').click();
-  await expect(page.getByRole('heading', { name: 'Vokabel', exact: true })).toBeVisible();
+async function newDeck(page: Page, name: string) {
+  await page.goto('/#/stapel/neu');
+  await page.getByTestId('in-deck-name').fill(name);
+  await page.getByTestId('save-deck').click();
+  await expect(page.getByRole('heading', { name })).toBeVisible();
 }
 
-test('create, edit, survive reload, delete an item', async ({ page }) => {
+test('create a deck and a card, edit it, survive a reload, delete it', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByText('Noch keine Vokabeln')).toBeVisible();
-  await addWord(page, 'آمدن', 'kommen');
-  await expect(page.locator('bdi[lang="fa"][dir="rtl"]').first()).toHaveText('آمدن');
+  await expect(page.getByText('Willkommen!')).toBeVisible();
+  await newDeck(page, 'Englisch');
+  await page.getByTestId('deck-add-card').click();
+  await page.getByTestId('in-front').fill('the library');
+  await page.getByTestId('in-back').fill('die Bücherei');
+  await page.getByTestId('save-card').click();
+  await expect(page.getByTestId('detail-back')).toContainText('die Bücherei');
 
   await page.getByRole('button', { name: 'Bearbeiten' }).click();
-  await page.getByTestId('in-german').fill('kommen, ankommen');
-  await page.getByTestId('in-german').fill('kommen');
-  await page.getByTestId('in-alt').fill('ankommen');
+  await page.getByTestId('in-back').fill('die Bibliothek');
+  await page.getByTestId('in-alt').fill('die Bücherei');
   await page.getByRole('radio', { name: /Priorität 5/ }).click();
-  await page.getByTestId('save-vocab').click();
-  await expect(page.getByText('auch: ankommen')).toBeVisible();
+  await page.getByTestId('save-card').click();
+  await expect(page.getByText('auch: die Bücherei')).toBeVisible();
 
   await page.reload();
-  await expect(page.getByText('auch: ankommen')).toBeVisible();
-  await page.goto('/#/vokabeln');
-  await expect(page.getByTestId('vocab-count')).toHaveText('1 Vokabel');
-
-  await page.getByRole('link', { name: /kommen/ }).click();
+  await expect(page.getByText('auch: die Bücherei')).toBeVisible();
   await page.getByRole('button', { name: 'Löschen' }).click();
   await page.getByRole('button', { name: 'Endgültig löschen' }).click();
-  await expect(page.getByText('Noch keine Vokabeln')).toBeVisible();
+  await page.goto('/#/karten');
+  await expect(page.getByText('Noch keine Karten')).toBeVisible();
 });
 
-test('create a lesson, study with a mistake, check stats and problem words', async ({ page }) => {
-  await page.goto('/#/lektionen');
-  await page.getByRole('button', { name: 'Lektion anlegen' }).first().click();
-  await page.getByTestId('in-lesson-name').fill('Persisch III – Lektion 1');
-  await page.getByTestId('save-lesson').click();
-  await expect(page.getByTestId('lesson-card')).toContainText('Persisch III – Lektion 1');
-
-  await page.goto('/#/vokabeln/import');
-  await page.getByTestId('bulk-input').fill('آمدن ; kommen\nرفتن ; gehen\nماندن ; bleiben');
-  await expect(page.getByTestId('import-summary')).toContainText('3 werden importiert');
+test('import several decks and lessons from CSV, study with a mistake, see statistics', async ({ page }) => {
+  await page.goto('/#/import');
+  await page.getByRole('radio', { name: 'CSV-Datei' }).click();
+  const csv = '﻿Deck,Lesson,Front,Back,Umschrift\nPersisch,Lektion 1,آمدن,kommen,âmadan\nPersisch,Lektion 2,رفتن,gehen,raftan\nMathe,Ableitungen,Ableitung von $x^2$,$2x$,\n';
+  await page.getByTestId('csv-input').setInputFiles({ name: 'karten.csv', mimeType: 'text/csv', buffer: Buffer.from(csv, 'utf8') });
+  await expect(page.getByTestId('map-4')).toHaveValue('field');
+  await expect(page.getByTestId('import-summary')).toContainText('3 werden importiert in 2 Stapel, 3 Lektionen');
   await page.getByTestId('run-import').click();
-  await expect(page.getByTestId('vocab-count')).toHaveText('3 Vokabeln');
+  await expect(page.getByTestId('deck-tile')).toHaveCount(2);
 
-  // Session: first card wrong, the rest correct
-  await page.goto('/');
-  await page.getByTestId('start-learning').click();
-  const card = page.getByTestId('flashcard');
-  await expect(card).toHaveAttribute('data-flipped', 'false');
-  await card.click();
-  await expect(card).toHaveAttribute('data-flipped', 'true');
-  await expect(page.getByTestId('btn-wrong')).toBeVisible();
+  await page.getByTestId('deck-tile').filter({ hasText: 'Mathe' }).click();
+  await page.getByTestId('deck-learn').click();
+  await page.getByTestId('flashcard').click();
+  await expect(page.locator('[data-testid=answer] .katex').first()).toBeVisible();
   await page.getByTestId('btn-wrong').click();
-  for (let i = 0; i < 3; i++) {
-    await expect(page.getByTestId('flashcard')).toHaveAttribute('data-flipped', 'false');
-    await page.getByTestId('flashcard').click();
-    await page.getByTestId('btn-right').click();
-  }
+  await page.getByTestId('flashcard').click();
+  await page.getByTestId('btn-right').click();
   await expect(page.getByTestId('summary')).toBeVisible();
-  await expect(page.getByTestId('sum-correct')).toHaveText('2');
   await expect(page.getByTestId('sum-incorrect')).toHaveText('1');
 
   await page.goto('/#/statistik');
   await expect(page.getByText('Lernaktivität pro Tag')).toBeVisible();
-  await expect(page.locator('text=Wiederholungen').first()).toBeVisible();
+  await expect(page.getByTestId('deck-stat')).toHaveCount(2);
+});
 
-  await page.goto('/#/problemvokabeln');
-  await expect(page.getByText('Noch zu wenig Daten')).toBeVisible();
+test('typed-answer mode highlights differences and leaves the decision to the user', async ({ page }) => {
+  await newDeck(page, 'Vokabeln');
+  await page.goto('/#/import');
+  await page.getByTestId('bulk-input').fill('the cat ; die Katze');
+  await page.getByTestId('run-import').click();
+  await expect(page.getByTestId('deck-learn')).toBeEnabled();
+  await page.goto('/#/einstellungen');
+  await page.getByTestId('toggle-typed').click();
+  await page.goto('/#/lernen?modus=lesson');
+  await page.getByTestId('start-session').click();
+  await page.getByTestId('typed-input').fill('die Kaze');
+  await page.getByTestId('typed-input').press('Enter');
+  await expect(page.getByTestId('diff-solution').locator('ins')).toHaveText('t');
+  await expect(page.getByTestId('btn-right')).toBeVisible();
+  await page.getByTestId('btn-right').click();
+  await expect(page.getByTestId('summary')).toBeVisible();
+  await expect(page.getByTestId('sum-correct')).toHaveText('1');
 });
 
 test('download a backup and restore it after data loss', async ({ page }) => {
-  await addWord(page, 'کتاب', 'Buch');
+  await newDeck(page, 'Geschichte');
+  await page.getByTestId('deck-add-card').click();
+  await page.getByTestId('in-front').fill('Westfälischer Friede');
+  await page.getByTestId('in-back').fill('1648');
+  await page.getByTestId('save-card').click();
   await page.goto('/#/einstellungen');
   const [download] = await Promise.all([page.waitForEvent('download'), page.getByTestId('create-backup').click()]);
   const path = await download.path();
   const backup = JSON.parse(readFileSync(path!, 'utf8'));
-  expect(backup.format).toBe('persisch-karten-backup');
-  expect(backup.data.vocab[0].persian).toBe('کتاب');
+  expect(backup.format).toBe('lernkarten-backup');
+  expect(backup.data.cards[0].back).toBe('1648');
 
-  // Simulate data loss
-  await page.evaluate(() => new Promise<void>((res) => { const r = indexedDB.deleteDatabase('persisch-karten'); r.onsuccess = r.onerror = r.onblocked = () => res(); }));
+  await page.evaluate(() => new Promise<void>((res) => { const r = indexedDB.deleteDatabase('lernkarten'); r.onsuccess = r.onerror = r.onblocked = () => res(); }));
   await page.reload();
-  await page.goto('/#/vokabeln');
-  await expect(page.getByText('Noch keine Vokabeln')).toBeVisible();
+  await page.goto('/#/karten');
+  await expect(page.getByText('Noch keine Karten')).toBeVisible();
 
   await page.goto('/#/einstellungen');
   await page.getByTestId('restore-input').setInputFiles(path!);
-  await expect(page.getByTestId('restore-summary')).toContainText('1 Vokabeln');
+  await expect(page.getByTestId('restore-summary')).toContainText('1 Karten in 1 Stapel');
   await page.getByRole('button', { name: 'Zusammenführen' }).click();
-  await page.goto('/#/vokabeln');
-  await expect(page.getByTestId('vocab-count')).toHaveText('1 Vokabel');
+  await page.goto('/#/karten');
+  await expect(page.getByTestId('card-count')).toHaveText('1 Karte');
 
-  // An invalid file is rejected
   await page.goto('/#/einstellungen');
   await page.getByTestId('restore-input').setInputFiles({ name: 'kaputt.json', mimeType: 'application/json', buffer: Buffer.from('{"foo":1}') });
   await expect(page.getByText('Sicherung nicht lesbar')).toBeVisible();
 });
 
+test('takes over data from the original Persian–German app on first start', async ({ page }) => {
+  await page.goto('/');
+  // Recreate the legacy database the way the old app stored it, then start fresh.
+  await page.evaluate(() => new Promise<void>((resolve, reject) => {
+    indexedDB.deleteDatabase('lernkarten');
+    const req = indexedDB.open('persisch-karten', 10);
+    req.onupgradeneeded = () => {
+      const d = req.result;
+      for (const [name, key] of [['vocab', 'id'], ['lessons', 'id'], ['states', 'id'], ['reviews', 'id'], ['sessions', 'id'], ['days', 'day'], ['settings', 'key']]) d.createObjectStore(name, { keyPath: key });
+    };
+    req.onsuccess = () => {
+      const d = req.result;
+      const tx = d.transaction(['vocab', 'lessons'], 'readwrite');
+      tx.objectStore('lessons').put({ id: 'L1', name: 'Lektion 1', description: '', createdAt: 1, lastPracticedAt: 0 });
+      tx.objectStore('vocab').put({ id: 'v1', persian: 'آمدن', german: 'kommen', altGerman: [], translit: 'âmadan', grammar: '', exampleFa: '', exampleDe: '', notes: '', lessonId: 'L1', priority: 5, tags: [], createdAt: 1, updatedAt: 1, lastReviewAt: 0, status: 'neu', problem: 0, sample: 0 });
+      tx.oncomplete = () => { d.close(); resolve(); };
+      tx.onerror = () => reject(tx.error);
+    };
+  }));
+  await page.reload();
+  await page.goto('/#/stapel');
+  await expect(page.getByTestId('deck-tile')).toContainText('Persisch – Deutsch');
+  await page.getByTestId('deck-tile').click();
+  await expect(page.getByTestId('lesson-row').first()).toContainText('Lektion 1');
+});
+
 test('works offline after the first load (service worker)', async ({ page, context }) => {
   await page.goto('/');
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
-  await addWord(page, 'آب', 'Wasser');
-  await page.waitForFunction(() => !!navigator.serviceWorker.controller || navigator.serviceWorker.ready.then(() => true));
-  await page.reload(); // the page is now controlled by the service worker
+  await page.getByTestId('home-load-sample').click();
+  await expect(page.getByTestId('start-learning')).toBeVisible();
+  await page.reload();
   await context.setOffline(true);
   await page.goto('/#/');
   await page.reload();
@@ -114,18 +146,17 @@ test('works offline after the first load (service worker)', async ({ page, conte
   await page.getByTestId('start-learning').click();
   await page.getByTestId('flashcard').click();
   await page.getByTestId('btn-right').click();
-  await expect(page.getByTestId('summary')).toBeVisible();
   await page.goto('/#/statistik');
   await expect(page.getByText('Lernaktivität pro Tag')).toBeVisible();
   await context.setOffline(false);
 });
 
-test('load and remove sample data; layout never overflows horizontally', async ({ page }) => {
+test('sample data loads and is removable; no page overflows horizontally', async ({ page }) => {
   await page.goto('/#/einstellungen');
   await page.getByTestId('load-sample').click();
-  await page.goto('/#/vokabeln');
-  await expect(page.getByTestId('vocab-count')).toHaveText('20 Vokabeln');
-  for (const route of ['/', '/#/lernen', '/#/vokabeln', '/#/lektionen', '/#/statistik', '/#/einstellungen']) {
+  await page.goto('/#/stapel');
+  await expect(page.getByTestId('deck-tile')).toHaveCount(4);
+  for (const route of ['/', '/#/lernen', '/#/stapel', '/#/karten', '/#/problemkarten', '/#/statistik', '/#/einstellungen', '/#/import', '/#/stapel/neu', '/#/karten/neu']) {
     await page.goto(route);
     await page.waitForTimeout(150);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
@@ -133,7 +164,7 @@ test('load and remove sample data; layout never overflows horizontally', async (
   }
   await page.goto('/#/einstellungen');
   await page.getByTestId('remove-sample').click();
-  await page.getByRole('button', { name: 'Beispieldaten entfernen' }).last().click();
-  await page.goto('/#/vokabeln');
-  await expect(page.getByText('Noch keine Vokabeln')).toBeVisible();
+  await page.getByRole('button', { name: 'Beispiele entfernen' }).last().click();
+  await page.goto('/#/stapel');
+  await expect(page.getByText('Noch keine Stapel')).toBeVisible();
 });

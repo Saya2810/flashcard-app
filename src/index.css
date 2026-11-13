@@ -1,81 +1,120 @@
 @import '@fontsource/vazirmatn/400.css';
 @import '@fontsource/vazirmatn/600.css';
+@import 'katex/dist/katex.min.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Soft pink, pastel palette. All text/background pairs meet WCAG AA. */
 :root {
-  --bg: 242 245 248;
+  --bg: 252 241 245;          /* #FCF1F5 blush */
   --surface: 255 255 255;
-  --sunken: 231 236 242;
-  --line: 217 224 232;
-  --ink: 20 33 43;
-  --muted: 88 103 117;
-  --accent: 31 75 160;
+  --sunken: 248 228 236;      /* #F8E4EC */
+  --line: 238 214 225;        /* #EED6E1 */
+  --ink: 58 36 50;            /* #3A2432 plum ink */
+  --muted: 122 94 110;        /* #7A5E6E */
+  --accent: 196 64 116;       /* #C44074 rose */
+  --accent-soft: 251 220 233; /* #FBDCE9 */
   --on-accent: 255 255 255;
-  --ok: 18 122 87;
-  --bad: 190 52 42;
-  --star: 205 140 10;
-  /* Chart colours (checked with a palette validator against the card surface) */
-  --c-ok: #2A5BB8;
-  --c-bad: #E0662B;
-  --c-neu: #AEB8C2;
-  --c-bearbeitung: #9DBBEE;
-  --c-gut: #4F7FD6;
-  --c-sicher: #173A7A;
+  --ok: 36 128 98;            /* #248062 */
+  --ok-soft: 220 243 233;
+  --bad: 196 62 72;           /* #C43E48 */
+  --bad-soft: 252 226 228;
+  --star: 214 146 30;
+  /* Deck colours (pastel tint + readable ink) */
+  --deck-rose: 251 220 233;     --deck-rose-ink: 160 46 94;
+  --deck-lavender: 232 226 252; --deck-lavender-ink: 92 74 170;
+  --deck-mint: 214 243 230;     --deck-mint-ink: 30 116 84;
+  --deck-peach: 255 228 212;    --deck-peach-ink: 170 82 36;
+  --deck-sky: 218 236 252;      --deck-sky-ink: 36 98 156;
+  --deck-lemon: 252 243 204;    --deck-lemon-ink: 130 100 10;
+  /* Chart colours (validated for colour-vision deficiencies against the card surface) */
+  --c-ok: #5B5FC7;
+  --c-bad: #E06C3C;
+  --c-neu: #D9C4CF;
+  --c-bearbeitung: #E9A8C4;
+  --c-gut: #C44074;
+  --c-sicher: #6E2149;
+  --ui-font: ui-rounded, 'SF Pro Rounded', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --card-scale: 1;
-  --fa-scale: 1;
   color-scheme: light;
 }
 .dark {
-  --bg: 12 18 24;
-  --surface: 23 32 42;
-  --sunken: 32 43 55;
-  --line: 46 60 75;
-  --ink: 233 239 244;
-  --muted: 150 165 179;
-  --accent: 122 166 242;
-  --on-accent: 9 20 38;
-  --ok: 84 200 156;
-  --bad: 242 128 112;
-  --star: 236 180 60;
-  --c-ok: #5586E0;
-  --c-bad: #D4672F;
-  --c-neu: #4B5967;
-  --c-bearbeitung: #34507F;
-  --c-gut: #5586E0;
-  --c-sicher: #B4CDF8;
+  --bg: 26 17 23;
+  --surface: 40 27 35;
+  --sunken: 52 36 46;
+  --line: 70 50 62;
+  --ink: 246 232 239;
+  --muted: 190 160 176;
+  --accent: 244 150 190;
+  --accent-soft: 78 40 60;
+  --on-accent: 50 14 32;
+  --ok: 110 214 170;
+  --ok-soft: 30 62 50;
+  --bad: 246 140 146;
+  --bad-soft: 74 32 38;
+  --star: 240 190 80;
+  --deck-rose: 84 40 62;     --deck-rose-ink: 250 190 216;
+  --deck-lavender: 58 50 92; --deck-lavender-ink: 206 196 252;
+  --deck-mint: 34 70 58;     --deck-mint-ink: 160 232 200;
+  --deck-peach: 86 52 36;    --deck-peach-ink: 255 200 168;
+  --deck-sky: 34 58 86;      --deck-sky-ink: 172 212 250;
+  --deck-lemon: 74 64 28;    --deck-lemon-ink: 244 222 140;
+  --c-ok: #7E80E6;
+  --c-bad: #D96A35;
+  --c-neu: #5A4452;
+  --c-bearbeitung: #8E4A6C;
+  --c-gut: #E07AA6;
+  --c-sicher: #F7C6DC;
   color-scheme: dark;
 }
 
 html { -webkit-text-size-adjust: 100%; }
 html, body, #root { height: 100%; }
 body {
-  @apply bg-bg text-ink font-sans antialiased;
+  @apply bg-bg text-ink antialiased;
+  font-family: var(--ui-font);
   overscroll-behavior-y: none;
   -webkit-tap-highlight-color: transparent;
 }
 button, a, [role='button'] { touch-action: manipulation; }
-:focus-visible { outline: 2px solid rgb(var(--accent)); outline-offset: 2px; border-radius: 6px; }
-input, select, textarea { font-size: 16px; } /* prevents auto-zoom on focus in iOS Safari */
-
-/* Persian text: dedicated font, generous line height, direction comes from the dir attribute */
-.fa {
-  font-family: Vazirmatn, 'Geeza Pro', Tahoma, sans-serif;
-  font-size: calc(1.12em * var(--fa-scale));
-  line-height: 1.9;
-  font-feature-settings: 'ss01';
-  overflow-wrap: anywhere;
-}
-bdi { unicode-bidi: isolate; }
+:focus-visible { outline: 2px solid rgb(var(--accent)); outline-offset: 2px; border-radius: 8px; }
+input, select, textarea { font-size: 16px; font-family: inherit; } /* prevents auto-zoom on focus in iOS Safari */
 
 .safe-top { padding-top: max(env(safe-area-inset-top), 0.75rem); }
 .safe-bottom { padding-bottom: max(env(safe-area-inset-bottom), 0.75rem); }
-.nav-space { padding-bottom: calc(5.25rem + env(safe-area-inset-bottom)); }
+.nav-space { padding-bottom: calc(5.5rem + env(safe-area-inset-bottom)); }
 
-/* Flashcard */
-.fc { perspective: 1400px; }
-.fc-inner { display: grid; transform-style: preserve-3d; transition: transform 0.5s cubic-bezier(0.3, 0.9, 0.3, 1); }
+/* Persian/Arabic inline text outside cards */
+.fa { font-family: Vazirmatn, 'Geeza Pro', Tahoma, sans-serif; line-height: 1.9; }
+bdi { unicode-bidi: isolate; }
+
+/* ---------- Rich card content ---------- */
+.rich { overflow-wrap: anywhere; line-height: 1.45; }
+.rich > * + * { margin-top: 0.5em; }
+.rich p, .rich li, .rich h1, .rich h2, .rich h3, .rich blockquote, .rich td, .rich th { unicode-bidi: plaintext; }
+.rich h1 { font-size: 1.3em; font-weight: 700; }
+.rich h2 { font-size: 1.15em; font-weight: 700; }
+.rich h3 { font-size: 1.05em; font-weight: 700; }
+.rich ul { list-style: disc; padding-inline-start: 1.3em; text-align: start; }
+.rich ol { list-style: decimal; padding-inline-start: 1.3em; text-align: start; }
+.rich strong { font-weight: 700; }
+.rich em { font-style: italic; }
+.rich a { color: rgb(var(--accent)); text-decoration: underline; }
+.rich blockquote { border-inline-start: 3px solid rgb(var(--line)); padding-inline-start: 0.7em; color: rgb(var(--muted)); }
+.rich code { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 0.86em; background: rgb(var(--sunken)); border-radius: 6px; padding: 0.1em 0.35em; }
+.rich pre { direction: ltr; text-align: left; background: rgb(var(--sunken)); border-radius: 14px; padding: 0.75em 0.9em; overflow-x: auto; font-size: 0.8em; line-height: 1.5; }
+.rich pre code { background: none; padding: 0; font-size: 1em; white-space: pre; }
+.rich img { max-width: 100%; max-height: 40vh; margin-inline: auto; border-radius: 14px; }
+.rich table { border-collapse: collapse; margin-inline: auto; font-size: 0.85em; }
+.rich td, .rich th { border: 1px solid rgb(var(--line)); padding: 0.25em 0.5em; }
+.rich .katex-display { margin: 0.4em 0; overflow-x: auto; overflow-y: hidden; padding: 0.1em 0; }
+.rich .katex { font-size: 1.08em; }
+.clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* ---------- Flashcard flip ---------- */
+.fc { perspective: 1600px; }
+.fc-inner { display: grid; transform-style: preserve-3d; transition: transform 0.55s cubic-bezier(0.3, 0.9, 0.3, 1); }
 .fc-face { grid-area: 1 / 1; -webkit-backface-visibility: hidden; backface-visibility: hidden; }
 .fc-back { transform: rotateY(180deg); }
 .fc[data-flipped='true'] .fc-inner { transform: rotateY(180deg); }
@@ -83,12 +122,16 @@ bdi { unicode-bidi: isolate; }
 .fc.no-anim .fc-back { transform: none; }
 .fc.no-anim[data-flipped='false'] .fc-back,
 .fc.no-anim[data-flipped='true'] .fc-front { visibility: hidden; }
-.fc-text { font-size: calc(1em * var(--card-scale)); line-height: 1.25; }
-.fc-text .fa { line-height: 1.7; }
 
-@keyframes sheet-up { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
-.sheet-panel { animation: sheet-up 0.22s ease-out; }
+/* Typed-answer diff */
+.diff-extra { background: rgb(var(--bad-soft)); color: rgb(var(--bad)); text-decoration: line-through; text-decoration-thickness: 2px; border-radius: 4px; }
+.diff-missing { background: rgb(var(--bad-soft)); color: rgb(var(--bad)); border-bottom: 2px solid rgb(var(--bad)); border-radius: 4px; }
+
+@keyframes sheet-up { from { transform: translateY(28px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes pop-in { from { transform: scale(0.97); opacity: 0; } to { transform: none; opacity: 1; } }
+.sheet-panel { animation: sheet-up 0.26s cubic-bezier(0.2, 0.9, 0.3, 1); }
+.pop-in { animation: pop-in 0.22s ease-out; }
 @media (prefers-reduced-motion: reduce) {
-  .sheet-panel { animation: none; }
+  .sheet-panel, .pop-in { animation: none; }
   * { scroll-behavior: auto !important; }
 }

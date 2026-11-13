@@ -3,66 +3,90 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { Flashcard } from '../components/Flashcard';
 import { db, stateId } from '../db/db';
-import { buildVocab } from '../db/repo';
-import { answers, resetDb, word } from '../test/helpers';
+import { buildCard, buildDeck, saveSettings } from '../db/repo';
+import { answers, card, deck, resetDb } from '../test/helpers';
 import type { SessionConfig } from '../types';
+import CardList from './CardList';
+import DeckForm from './DeckForm';
 import Problems from './Problems';
 import Session from './Session';
 import Stats from './Stats';
-import VocabList from './VocabList';
 
 beforeEach(resetDb);
 
-const sample = buildVocab({ persian: 'آمدن', german: 'kommen', altGerman: ['ankommen'], translit: 'âmadan', grammar: 'Verb', exampleFa: 'من می‌آیم.', exampleDe: 'Ich komme.' });
+const faDeck = buildDeck({
+  name: 'Persisch', reverse: true, rich: false,
+  front: { label: 'Persisch', lang: 'fa', dir: 'rtl', font: 'vazirmatn' }, back: { label: 'Deutsch', lang: 'de', dir: 'ltr' },
+  fields: [{ key: 'um', label: 'Umschrift', dir: 'ltr', font: 'system' }],
+});
+const faCard = buildCard({ deckId: faDeck.id, front: 'آمدن', back: 'kommen', altBack: ['ankommen'], fields: { um: 'âmadan' }, notes: 'Präsensstamm آ' });
+const mathDeck = buildDeck({ name: 'Mathe', rich: true, front: { label: 'Begriff' }, back: { label: 'Formel' } });
+const mathCard = buildCard({ deckId: mathDeck.id, front: 'Kettenregel', back: "$$(f\\circ g)'(x) = f'(g(x))\\,g'(x)$$\n\n```python\nprint('x')\n```" });
 
 describe('Flashcard', () => {
   it('shows the front first and flips on tap', () => {
     let flipped = false;
-    const view = (f: boolean) => <Flashcard vocab={sample} direction="fa-de" flipped={f} onFlip={() => { flipped = !flipped; }} />;
+    const view = (f: boolean) => <Flashcard card={faCard} deck={faDeck} direction="fwd" flipped={f} onFlip={() => { flipped = !flipped; }} />;
     const { rerender } = render(view(false));
-    const card = screen.getByTestId('flashcard');
-    expect(card).toHaveAttribute('data-flipped', 'false');
-    expect(screen.getByTestId('card-front')).toHaveAttribute('aria-hidden', 'false');
+    const c = screen.getByTestId('flashcard');
+    expect(c).toHaveAttribute('data-flipped', 'false');
     expect(screen.getByTestId('card-back')).toHaveAttribute('aria-hidden', 'true');
-    fireEvent.click(card);
+    fireEvent.click(c);
     expect(flipped).toBe(true);
     rerender(view(true));
-    expect(card).toHaveAttribute('data-flipped', 'true');
-    expect(screen.getByTestId('card-back')).toHaveAttribute('aria-hidden', 'false');
     const back = within(screen.getByTestId('card-back'));
     expect(back.getByText('kommen')).toBeInTheDocument();
     expect(back.getByText('âmadan')).toBeInTheDocument();
-    expect(back.getByText('auch: ankommen')).toBeInTheDocument();
-    expect(back.getByText('Ich komme.')).toBeInTheDocument();
+    expect(back.getByText('Umschrift')).toBeInTheDocument();
+    expect(back.getByText('ankommen')).toBeInTheDocument();
+    expect(back.getByText('Präsensstamm آ')).toBeInTheDocument();
   });
 
   it('can be flipped with the keyboard', () => {
     let n = 0;
-    render(<Flashcard vocab={sample} direction="fa-de" flipped={false} onFlip={() => n++} />);
+    render(<Flashcard card={faCard} deck={faDeck} direction="fwd" flipped={false} onFlip={() => n++} />);
     fireEvent.keyDown(screen.getByTestId('flashcard'), { key: 'Enter' });
     fireEvent.keyDown(screen.getByTestId('flashcard'), { key: ' ' });
     expect(n).toBe(2);
   });
 
-  it('renders Persian text with dir="rtl" and lang="fa", unchanged', () => {
-    render(<Flashcard vocab={sample} direction="fa-de" flipped={false} onFlip={() => {}} />);
-    const fa = within(screen.getByTestId('card-front')).getByText('آمدن');
-    expect(fa).toHaveAttribute('dir', 'rtl');
-    expect(fa).toHaveAttribute('lang', 'fa');
-    expect(fa.textContent).toBe('آمدن');
+  it('applies the deck\'s language, direction and font; text stays unchanged', () => {
+    render(<Flashcard card={faCard} deck={faDeck} direction="fwd" flipped={false} onFlip={() => {}} />);
+    const q = screen.getByTestId('question');
+    expect(q).toHaveAttribute('dir', 'rtl');
+    expect(q).toHaveAttribute('lang', 'fa');
+    expect(q.style.fontFamily).toContain('Vazirmatn');
+    expect(q.textContent).toBe('آمدن');
   });
 
-  it('German → Persian direction shows German on the front', () => {
-    render(<Flashcard vocab={sample} direction="de-fa" flipped={false} onFlip={() => {}} />);
+  it('back → front direction puts the back side first', () => {
+    render(<Flashcard card={faCard} deck={faDeck} direction="rev" flipped={false} onFlip={() => {}} />);
     expect(within(screen.getByTestId('card-front')).getByText('kommen')).toBeInTheDocument();
     expect(within(screen.getByTestId('card-back')).getByText('آمدن')).toBeInTheDocument();
   });
 
-  it('shrinks very long Persian expressions and can disable animation', () => {
-    const long = buildVocab({ persian: 'من هر روز صبح زود از خواب بیدار می‌شوم و به دانشگاه می‌روم', german: 'lang' });
-    render(<Flashcard vocab={long} direction="fa-de" flipped={false} onFlip={() => {}} animations={false} />);
-    expect(screen.getByText(long.persian).closest('.text-2xl')).not.toBeNull();
-    expect(screen.getByTestId('flashcard').className).toContain('no-anim');
+  it('renders LaTeX and code blocks in rich decks', () => {
+    render(<Flashcard card={mathCard} deck={mathDeck} direction="fwd" flipped onFlip={() => {}} />);
+    const a = screen.getByTestId('answer');
+    expect(a.querySelector('.katex-display')).not.toBeNull();
+    expect(a.querySelector('pre code')?.textContent).toContain("print('x')");
+  });
+
+  it('typed-answer mode shows the diff after flipping, without any verdict', () => {
+    const { rerender } = render(<Flashcard card={faCard} deck={faDeck} direction="fwd" flipped={false} onFlip={() => {}} typed="komen" />);
+    expect(screen.queryByTestId('answer-diff')).toBeNull();
+    rerender(<Flashcard card={faCard} deck={faDeck} direction="fwd" flipped onFlip={() => {}} typed="komen" />);
+    const diff = screen.getByTestId('answer-diff');
+    expect(within(diff).getByTestId('diff-typed').textContent).toBe('komen');
+    const missing = within(diff).getByTestId('diff-solution').querySelector('ins');
+    expect(missing?.textContent).toBe('m');
+    expect(diff.textContent).toContain('Du entscheidest selbst');
+    expect(diff.textContent).not.toMatch(/\b(korrekt|falsch)\b/i);
+  });
+
+  it('compares against the closest accepted answer', () => {
+    render(<Flashcard card={faCard} deck={faDeck} direction="fwd" flipped onFlip={() => {}} typed="ankommen" />);
+    expect(screen.getByTestId('answer-diff').textContent).toContain('Keine Unterschiede');
   });
 });
 
@@ -73,56 +97,75 @@ function renderSession(cfg: SessionConfig) {
     </MemoryRouter>,
   );
 }
-const cfg = (p: Partial<SessionConfig> = {}): SessionConfig => ({ mode: 'lesson', direction: 'fa-de', lessonIds: [], priorities: [], size: 20, ...p });
+const cfg = (p: Partial<SessionConfig> = {}): SessionConfig => ({ mode: 'lesson', direction: 'fwd', deckIds: [], lessonIds: [], priorities: [], size: 20, ...p });
+const front = async () => ((await screen.findByTestId('question')).textContent ?? '').trim();
 
 describe('Study session', () => {
   it('shows exactly two answer buttons after flipping: Falsch and Richtig', async () => {
-    await word();
+    await card();
     renderSession(cfg());
-    const card = await screen.findByTestId('flashcard');
+    const c = await screen.findByTestId('flashcard');
     expect(screen.queryByTestId('btn-right')).toBeNull();
-    fireEvent.click(card);
-    const footer = screen.getByTestId('btn-right').parentElement!;
-    const buttons = within(footer).getAllByRole('button');
+    fireEvent.click(c);
+    const buttons = within(screen.getByTestId('btn-right').parentElement!).getAllByRole('button');
     expect(buttons.map((b) => b.textContent)).toEqual(['Falsch', 'Richtig']);
   });
 
   it('brings a wrong card back in the same session and persists everything', async () => {
-    const a = await word('آمدن', 'kommen');
-    const b = await word('رفتن', 'gehen');
-    // Both may be created in the same millisecond; pin the order so the test is deterministic.
-    await db.vocab.update(b.id, { createdAt: a.createdAt + 1 });
+    const d = await deck();
+    const a = await card('آمدن', 'kommen', { deckId: d.id });
+    const b = await card('رفتن', 'gehen', { deckId: d.id });
     renderSession(cfg());
-    const front = async () => (await screen.findByTestId('card-front')).textContent ?? '';
-    expect(await front()).toContain('آمدن');
+    expect(await front()).toBe('آمدن');
     fireEvent.click(screen.getByTestId('flashcard'));
     fireEvent.click(screen.getByTestId('btn-wrong'));
-    await waitFor(async () => expect(await front()).toContain('رفتن'));
+    await waitFor(async () => expect(await front()).toBe('رفتن'));
     fireEvent.click(screen.getByTestId('flashcard'));
     fireEvent.click(screen.getByTestId('btn-right'));
-    // The wrong card comes back, marked as a repeat.
     await screen.findByText(/Noch einmal/);
-    expect(await front()).toContain('آمدن');
+    expect(await front()).toBe('آمدن');
     expect(screen.getByTestId('progress').textContent).toBe('2 / 3');
     fireEvent.click(screen.getByTestId('flashcard'));
     fireEvent.click(screen.getByTestId('btn-right'));
     await screen.findByTestId('summary');
     expect(screen.getByTestId('sum-correct').textContent).toBe('1');
     expect(screen.getByTestId('sum-incorrect').textContent).toBe('1');
-
-    const sa = (await db.states.get(stateId(a.id, 'fa-de')))!;
-    expect(sa).toMatchObject({ total: 1, incorrect: 1 }); // the repeat is not counted twice
-    expect((await db.states.get(stateId(b.id, 'fa-de')))!.correct).toBe(1);
+    expect(await db.states.get(stateId(a.id, 'fwd'))).toMatchObject({ total: 1, incorrect: 1 });
+    expect((await db.states.get(stateId(b.id, 'fwd')))?.correct).toBe(1);
     expect(await db.reviews.count()).toBe(3);
-    const [session] = await db.sessions.toArray();
-    expect(session).toMatchObject({ mode: 'lesson', planned: 2, answered: 2, correct: 1, incorrect: 1 });
-    const kinds = (await db.reviews.orderBy('ts').toArray()).map((r) => r.kind);
-    expect(kinds.filter((k) => k === 'relearn')).toHaveLength(1);
+    expect((await db.sessions.toArray())[0]).toMatchObject({ planned: 2, answered: 2, correct: 1, incorrect: 1 });
+  });
+
+  it('typed answers are stored for reference, but only the button decides', async () => {
+    await saveSettings({ typedAnswer: true });
+    const c = await card('cat', 'Katze');
+    renderSession(cfg());
+    const input = await screen.findByTestId('typed-input');
+    fireEvent.change(input, { target: { value: 'Katze' } });
+    fireEvent.click(screen.getByTestId('reveal'));
+    expect(await screen.findByTestId('answer-diff')).toHaveTextContent('Keine Unterschiede');
+    // identical answer – user still marks it wrong, and that is what counts
+    fireEvent.click(screen.getByTestId('btn-wrong'));
+    await waitFor(async () => expect((await db.states.get(stateId(c.id, 'fwd')))?.incorrect).toBe(1));
+    const [ev] = await db.reviews.toArray();
+    expect(ev).toMatchObject({ correct: false, typed: 'Katze' });
+  });
+
+  it('Enter in the answer field reveals the solution', async () => {
+    await saveSettings({ typedAnswer: true });
+    await card('cat', 'Katze');
+    renderSession(cfg());
+    const input = await screen.findByTestId('typed-input');
+    fireEvent.change(input, { target: { value: 'Kaze' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(await screen.findByTestId('btn-right')).toBeInTheDocument();
+    expect(screen.getByTestId('diff-solution').querySelector('ins')?.textContent).toBe('t');
   });
 
   it('free practice changes neither schedule nor statistics', async () => {
-    await word('آمدن', 'kommen');
-    await word('رفتن', 'gehen');
+    const d = await deck();
+    await card('a', 'b', { deckId: d.id });
+    await card('c', 'd', { deckId: d.id });
     renderSession(cfg({ mode: 'free' }));
     fireEvent.click(await screen.findByTestId('flashcard'));
     expect(screen.getByText(/zählt nicht für den Lernplan/)).toBeInTheDocument();
@@ -134,6 +177,14 @@ describe('Study session', () => {
     expect(await db.sessions.count()).toBe(0);
   });
 
+  it('only studies the chosen deck', async () => {
+    const a = await card('nur hier', 'x');
+    await card('anderer Stapel', 'y');
+    renderSession(cfg({ deckIds: [a.deckId] }));
+    expect(await front()).toBe('nur hier');
+    expect(screen.getByTestId('progress').textContent).toBe('0 / 1');
+  });
+
   it('explains an empty session instead of showing a blank card', async () => {
     renderSession(cfg({ mode: 'problem' }));
     expect(await screen.findByText('Nichts zu lernen')).toBeInTheDocument();
@@ -141,42 +192,41 @@ describe('Study session', () => {
 });
 
 describe('Pages', () => {
-  it('statistics page shows an empty state without items', async () => {
+  it('statistics shows an empty state without cards', async () => {
     render(<MemoryRouter><Stats /></MemoryRouter>);
     expect(await screen.findByText('Noch nichts auszuwerten')).toBeInTheDocument();
   });
 
-  it('statistics page shows daily values and lessons after answers', async () => {
-    const v = await word();
+  it('statistics shows daily values and per-deck stats after answers', async () => {
+    const v = await card();
     await answers(v.id, '01', { start: Date.now() - 1000, gapDays: 0 });
     render(<MemoryRouter><Stats /></MemoryRouter>);
     expect(await screen.findByText('Lernaktivität pro Tag')).toBeInTheDocument();
-    expect(screen.getByText('Anstehende Wiederholungen')).toBeInTheDocument();
-    expect(await screen.findByTestId('lesson-stat')).toHaveTextContent('Ohne Lektion');
+    expect(await screen.findByTestId('deck-stat')).toBeInTheDocument();
     expect(screen.getAllByText('50 %').length).toBeGreaterThan(0);
   });
 
-  it('search finds Persian words typed with Arabic letters', async () => {
-    await word('کتاب', 'Buch');
-    await word('یک', 'eins');
-    await word('آب', 'Wasser');
-    render(<MemoryRouter><VocabList /></MemoryRouter>);
-    await waitFor(() => expect(screen.getByTestId('vocab-count').textContent).toBe('3 Vokabeln'));
-    const search = screen.getByLabelText('Vokabeln durchsuchen');
-    fireEvent.change(search, { target: { value: 'كتاب' } }); // Arabic kaf
-    await waitFor(() => expect(screen.getByTestId('vocab-count').textContent).toBe('1 Vokabel'));
-    expect(screen.getByText('Buch')).toBeInTheDocument();
-    fireEvent.change(search, { target: { value: 'يك' } }); // Arabic ya and kaf
+  it('search finds Persian words typed with Arabic letters, and text in custom fields', async () => {
+    const d = await deck({ fields: [{ key: 'um', label: 'Umschrift', dir: 'ltr', font: 'system' }] });
+    await card('کتاب', 'Buch', { deckId: d.id, fields: { um: 'ketâb' } });
+    await card('یک', 'eins', { deckId: d.id });
+    await card('Integral', '$\\int f$', { deckId: d.id });
+    render(<MemoryRouter><CardList /></MemoryRouter>);
+    await waitFor(() => expect(screen.getByTestId('card-count').textContent).toBe('3 Karten'));
+    const search = screen.getByLabelText('Karten durchsuchen');
+    fireEvent.change(search, { target: { value: 'كتاب' } });
+    await waitFor(() => expect(screen.getByTestId('card-count').textContent).toBe('1 Karte'));
+    fireEvent.change(search, { target: { value: 'ketab' } });
+    await waitFor(() => expect(screen.getByText('Buch')).toBeInTheDocument());
+    fireEvent.change(search, { target: { value: 'يك' } });
     await waitFor(() => expect(screen.getByText('eins')).toBeInTheDocument());
-    fireEvent.change(search, { target: { value: 'wass' } });
-    await waitFor(() => expect(screen.getByText('Wasser')).toBeInTheDocument());
     fireEvent.change(search, { target: { value: 'zzz' } });
     expect(await screen.findByText('Nichts gefunden')).toBeInTheDocument();
   });
 
-  it('problem page separates detected words from those with too little data', async () => {
-    const hard = await word('آمدن', 'kommen');
-    const once = await word('رفتن', 'gehen');
+  it('problem page separates detected cards from those with too little data', async () => {
+    const hard = await card('آمدن', 'kommen');
+    const once = await card('رفتن', 'gehen');
     await answers(hard.id, '001000');
     await answers(once.id, '0');
     render(<MemoryRouter><Problems /></MemoryRouter>);
@@ -185,8 +235,23 @@ describe('Pages', () => {
     expect(within(table).getByText('83 %')).toBeInTheDocument();
     expect(within(table).queryByText('رفتن')).toBeNull();
     expect(screen.getByText('Noch zu wenig Daten')).toBeInTheDocument();
-    expect(screen.getByTestId('practice-problems')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('checkbox', { name: 'kommen auswählen' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'آمدن auswählen' }));
     expect(screen.getByTestId('practice-selected')).toHaveTextContent('Auswahl üben (1)');
+  });
+
+  it('deck form creates a deck with language, direction, font and custom fields', async () => {
+    render(<MemoryRouter initialEntries={['/stapel/neu']}><Routes><Route path="/stapel/neu" element={<DeckForm />} /><Route path="/stapel/:id" element={<div>Detail</div>} /></Routes></MemoryRouter>);
+    fireEvent.change(screen.getByTestId('in-deck-name'), { target: { value: 'Arabisch' } });
+    fireEvent.change(screen.getByTestId('in-deck-subject'), { target: { value: 'Sprachen' } });
+    const langs = screen.getAllByLabelText('Sprache') as HTMLSelectElement[];
+    fireEvent.change(langs[0], { target: { value: 'ar' } });
+    fireEvent.click(screen.getByTestId('in-deck-reverse'));
+    fireEvent.click(screen.getByTestId('add-field'));
+    fireEvent.change(screen.getByLabelText('Feldname'), { target: { value: 'Wurzel' } });
+    fireEvent.click(screen.getByTestId('save-deck'));
+    await screen.findByText('Detail');
+    const d = (await db.decks.where('name').equals('Arabisch').first())!;
+    expect(d).toMatchObject({ subject: 'Sprachen', reverse: true, front: { lang: 'ar', dir: 'rtl', font: 'vazirmatn' } });
+    expect(d.fields.map((f) => f.label)).toEqual(['Wurzel']);
   });
 });

@@ -3,7 +3,7 @@ import { addDays, dayKey, endOfDay, keyToDate } from '../lib/dates';
 import { emptyDay, statusCounts } from '../srs/review';
 import { errorRate, hasEnoughData, wilsonLower } from '../srs/metrics';
 import { retrievability } from '../srs/scheduler';
-import type { DayStats, DirectionChoice, Lesson, SchedState, Status, Vocab } from '../types';
+import type { Card, DayStats, Deck, DirectionChoice, Lesson, SchedState, Status } from '../types';
 
 export interface Streaks { current: number; longest: number }
 
@@ -26,7 +26,8 @@ export function computeStreaks(activeDays: string[], now: number): Streaks {
 }
 
 export interface Overview {
-  vocabCount: number;
+  cardCount: number;
+  deckCount: number;
   today: DayStats;
   dueToday: number;
   dueTomorrow: number;
@@ -47,17 +48,18 @@ export async function loadOverview(direction: DirectionChoice, now = Date.now(),
   const eod = endOfDay(now);
   const days = await d.days.toArray();
   const today = days.find((x) => x.day === dayKey(now)) ?? emptyDay(dayKey(now));
-  const vocabCount = await d.vocab.count();
-  const firstDir = direction === 'mixed' ? 'fa-de' : direction;
-  const started = await d.states.where('direction').equals(firstDir).count();
+  const cardCount = await d.cards.count();
+  // Cards never answered front → back (the direction every deck studies).
+  const started = await d.states.where('direction').equals(direction === 'rev' ? 'rev' : 'fwd').count();
   const totals = days.reduce((a, x) => ({ reviews: a.reviews + x.reviews, correct: a.correct + x.correct, incorrect: a.incorrect + x.incorrect }), { reviews: 0, correct: 0, incorrect: 0 });
   return {
-    vocabCount,
+    cardCount,
+    deckCount: await d.decks.count(),
     today,
     dueToday: await dueCount(d, direction, 0, eod),
     dueTomorrow: await dueCount(d, direction, eod + 1, endOfDay(addDays(now, 1))),
-    newAvailable: Math.max(0, vocabCount - started),
-    problemCount: await d.vocab.where('problem').equals(1).count(),
+    newAvailable: Math.max(0, cardCount - started),
+    problemCount: await d.cards.where('problem').equals(1).count(),
     streaks: computeStreaks(days.filter((x) => x.reviews > 0).map((x) => x.day), now),
     totals,
     status: await statusCounts(d),
@@ -87,7 +89,8 @@ export async function loadForecast(n: number, now = Date.now(), database: AppDB 
 
 export interface ProblemRow {
   state: SchedState;
-  vocab: Vocab;
+  card: Card;
+  deck: Deck | undefined;
   errorRate: number;
   score: number;
   strength: number | null;
@@ -107,26 +110,22 @@ export function sortProblems(rows: ProblemRow[], sort: ProblemSort): ProblemRow[
   return [...rows].sort(by[sort]);
 }
 
-/** All directions with at least one mistake, split into detected problem words and "not enough data". */
-export async function loadProblemRows(now = Date.now(), database: AppDB = db): Promise<{ problems: ProblemRow[]; watch: ProblemRow[] }> {
-  const states = await database.states.filter((s) => s.incorrect > 0).toArray();
-  const vocab = new Map((await database.vocab.bulkGet([...new Set(states.map((s) => s.vocabId))])).filter((v): v is Vocab => !!v).map((v) => [v.id, v]));
-  const rows: ProblemRow[] = states.filter((s) => vocab.has(s.vocabId)).map((s) => ({
-    state: s,
-    vocab: vocab.get(s.vocabId)!,
-    errorRate: errorRate(s),
-    score: wilsonLower(s.incorrect, s.total),
-    strength: retrievability(s, now),
-    enoughData: hasEnoughData(s),
-  }));
-  return {
-    problems: rows.filter((r) => r.state.problem),
-    watch: rows.filter((r) => !r.state.problem && !r.enoughData),
-  };
+/** All directions with at least one mistake, split into detected problem cards and "not enough data". */
+export async function loadProblemRows(deckId?: string, now = Date.now(), database: AppDB = db): Promise<{ problems: ProblemRow[]; watch: ProblemRow[] }> {
+  const states = await database.states.filter((s) => s.incorrect > 0 && (!deckId || s.deckId === deckId)).toArray();
+  const cards = new Map((await database.cards.bulkGet([...new Set(states.map((s) => s.cardId))])).filter((c): c is Card => !!c).map((c) => [c.id, c]));
+  const decks = new Map((await database.decks.toArray()).map((d) => [d.id, d]));
+  const rows: ProblemRow[] = states.filter((s) => cards.has(s.cardId)).map((s) => {
+    const card = cards.get(s.cardId)!;
+    return {
+      state: s, card, deck: decks.get(card.deckId),
+      errorRate: errorRate(s), score: wilsonLower(s.incorrect, s.total), strength: retrievability(s, now), enoughData: hasEnoughData(s),
+    };
+  });
+  return { problems: rows.filter((r) => r.state.problem), watch: rows.filter((r) => !r.state.problem && !r.enoughData) };
 }
 
-export interface LessonStats {
-  lesson: Lesson | null;
+export interface GroupStats {
   total: number;
   reviews: number;
   correct: number;
@@ -134,35 +133,46 @@ export interface LessonStats {
   mastered: number;
   difficult: number;
   started: number;
+  due: number;
   /** Progress 0–1: mastered = 1, good = 0.75, in progress = 0.4, shaky = 0.15, new = 0. */
   progress: number;
 }
+export interface DeckStats extends GroupStats { deck: Deck; lessons: (GroupStats & { lesson: Lesson | null })[] }
 
 const PROGRESS_WEIGHT: Record<Status, number> = { neu: 0, unsicher: 0.15, bearbeitung: 0.4, gut: 0.75, sicher: 1 };
+const emptyGroup = (): GroupStats => ({ total: 0, reviews: 0, correct: 0, incorrect: 0, mastered: 0, difficult: 0, started: 0, due: 0, progress: 0 });
 
-export async function loadLessonStats(database: AppDB = db): Promise<LessonStats[]> {
-  const lessons = await database.lessons.orderBy('name').toArray();
-  const vocab = await database.vocab.toArray();
+/** Per-deck and per-lesson statistics in one pass (cards and states are read once). */
+export async function loadDeckStats(now = Date.now(), database: AppDB = db): Promise<DeckStats[]> {
+  const decks = await database.decks.orderBy('name').toArray();
+  const lessons = await database.lessons.toArray();
+  const cards = await database.cards.toArray();
   const states = await database.states.toArray();
-  const per = new Map<string, LessonStats>();
-  const make = (lesson: Lesson | null): LessonStats => ({ lesson, total: 0, reviews: 0, correct: 0, incorrect: 0, mastered: 0, difficult: 0, started: 0, progress: 0 });
-  for (const l of lessons) per.set(l.id, make(l));
-  const lessonOf = new Map<string, string>();
-  for (const v of vocab) {
-    const key = per.has(v.lessonId) ? v.lessonId : '';
-    if (!per.has(key)) per.set('', make(null));
-    const s = per.get(key)!;
-    lessonOf.set(v.id, key);
-    s.total++;
-    if (v.status === 'sicher') s.mastered++;
-    if (v.problem) s.difficult++;
-    if (v.status !== 'neu') s.started++;
-    s.progress += PROGRESS_WEIGHT[v.status];
+  const eod = endOfDay(now);
+  const byDeck = new Map(decks.map((d) => [d.id, { ...emptyGroup(), deck: d, lessonMap: new Map<string, GroupStats & { lesson: Lesson | null }>() }]));
+  for (const l of lessons) byDeck.get(l.deckId)?.lessonMap.set(l.id, { ...emptyGroup(), lesson: l });
+  const groupsOf = new Map<string, GroupStats[]>();
+  for (const c of cards) {
+    const ds = byDeck.get(c.deckId);
+    if (!ds) continue;
+    let ls = ds.lessonMap.get(c.lessonId);
+    if (!ls) { ls = ds.lessonMap.get('') ?? { ...emptyGroup(), lesson: null }; ds.lessonMap.set('', ls); }
+    for (const g of [ds, ls]) {
+      g.total++;
+      if (c.status === 'sicher') g.mastered++;
+      if (c.problem) g.difficult++;
+      if (c.status !== 'neu') g.started++;
+      g.progress += PROGRESS_WEIGHT[c.status];
+    }
+    groupsOf.set(c.id, [ds, ls]);
   }
-  for (const st of states) {
-    const s = per.get(lessonOf.get(st.vocabId) ?? '\u0000');
-    if (!s) continue;
-    s.reviews += st.total; s.correct += st.correct; s.incorrect += st.incorrect;
+  for (const st of states) for (const g of groupsOf.get(st.cardId) ?? []) {
+    g.reviews += st.total; g.correct += st.correct; g.incorrect += st.incorrect;
+    if (st.due <= eod) g.due++;
   }
-  return [...per.values()].map((s) => ({ ...s, progress: s.total ? s.progress / s.total : 0 }));
+  const fin = <T extends GroupStats>(g: T): T => ({ ...g, progress: g.total ? g.progress / g.total : 0 });
+  return [...byDeck.values()].map(({ lessonMap, ...g }) => ({
+    ...fin(g),
+    lessons: [...lessonMap.values()].map(fin).sort((a, b) => (a.lesson ? (b.lesson ? a.lesson.name.localeCompare(b.lesson.name, 'de', { numeric: true }) : -1) : 1)),
+  }));
 }

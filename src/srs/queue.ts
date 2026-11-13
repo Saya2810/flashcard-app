@@ -1,9 +1,9 @@
 import { endOfDay } from '../lib/dates';
-import type { AppSettings, Direction, SchedState, SessionConfig, Vocab } from '../types';
+import type { AppSettings, Card, Deck, Direction, SchedState, SessionConfig } from '../types';
 import { retrievability } from './scheduler';
 
 export interface QueueItem {
-  vocabId: string;
+  cardId: string;
   direction: Direction;
   isNew: boolean;
   /** true = repeat after a mistake in this session (no longer affects FSRS). */
@@ -19,7 +19,7 @@ export interface QueueContext {
 }
 
 interface Candidate {
-  v: Vocab;
+  v: Card;
   direction: Direction;
   s: SchedState | undefined;
   isNew: boolean;
@@ -36,18 +36,30 @@ export const priorityWeight = (p: number) => 0.7 + 0.1 * p;
 export const EXTRA_PROBLEM_SHARE = 0.2;
 export const NEW_SHARE_WHEN_BUSY = 0.25;
 
-function candidates(cfg: SessionConfig, vocab: Vocab[], states: SchedState[], now: number): Candidate[] {
+/** Directions a deck allows: front → back always, back → front only if the deck enables it. */
+export function deckDirections(deck: Pick<Deck, 'reverse'> | undefined): Direction[] {
+  return deck?.reverse ? ['fwd', 'rev'] : ['fwd'];
+}
+
+function candidates(cfg: SessionConfig, cards: Card[], states: SchedState[], decks: Map<string, Deck>, now: number): Candidate[] {
   const byId = new Map(states.map((s) => [s.id, s]));
-  const dirs: Direction[] = cfg.direction === 'mixed' ? ['fa-de', 'de-fa'] : [cfg.direction];
+  const wanted: Direction[] = cfg.direction === 'mixed' ? ['fwd', 'rev'] : [cfg.direction];
+  const deckSet = new Set(cfg.deckIds);
   const lessons = new Set(cfg.lessonIds);
   const prios = new Set(cfg.priorities);
-  const ids = cfg.vocabIds ? new Set(cfg.vocabIds) : null;
+  const ids = cfg.cardIds ? new Set(cfg.cardIds) : null;
   const eod = endOfDay(now);
   const out: Candidate[] = [];
-  for (const v of vocab) {
+  for (const v of cards) {
     if (ids && !ids.has(v.id)) continue;
+    if (!ids && deckSet.size && !deckSet.has(v.deckId)) continue;
     if (!ids && lessons.size && !lessons.has(v.lessonId)) continue;
     if (!ids && prios.size && !prios.has(v.priority)) continue;
+    const allowed = deckDirections(decks.get(v.deckId));
+    // A card whose deck only allows front → back is still studied when the user asks for back → front only
+    // if nothing else would be possible: we fall back to its allowed direction.
+    let dirs = wanted.filter((d) => allowed.includes(d));
+    if (!dirs.length) dirs = allowed;
     for (const direction of dirs) {
       const s = byId.get(`${v.id}|${direction}`);
       const isNew = !s || s.total === 0;
@@ -64,12 +76,12 @@ function candidates(cfg: SessionConfig, vocab: Vocab[], states: SchedState[], no
 }
 
 const byUrgency = (a: Candidate, b: Candidate) => b.urgency - a.urgency || a.v.createdAt - b.v.createdAt;
-/** New cards: high priority first, then recognition (fa→de) before production, then entry order. */
+/** New cards: high priority first, then front → back before back → front, then entry order. */
 const byNewOrder = (a: Candidate, b: Candidate) =>
-  b.v.priority - a.v.priority || (a.direction === b.direction ? 0 : a.direction === 'fa-de' ? -1 : 1) || a.v.createdAt - b.v.createdAt;
+  b.v.priority - a.v.priority || (a.direction === b.direction ? 0 : a.direction === 'fwd' ? -1 : 1) || a.v.createdAt - b.v.createdAt;
 
-/** At most one card per item and session (in mixed mode, the more urgent direction). */
-function uniqueByVocab(list: Candidate[], seen = new Set<string>()): Candidate[] {
+/** At most one entry per card and session (in mixed mode, the more urgent direction). */
+function uniqueByCard(list: Candidate[], seen = new Set<string>()): Candidate[] {
   return list.filter((c) => (seen.has(c.v.id) ? false : (seen.add(c.v.id), true)));
 }
 
@@ -89,57 +101,58 @@ export function interleave<T>(a: T[], b: T[]): T[] {
   return out;
 }
 
-const toItem = (c: Candidate): QueueItem => ({ vocabId: c.v.id, direction: c.direction, isNew: c.isNew, relearn: false, attempts: 0 });
+const toItem = (c: Candidate): QueueItem => ({ cardId: c.v.id, direction: c.direction, isNew: c.isNew, relearn: false, attempts: 0 });
 
 /**
  * Builds the card order for a session. Deterministic – no randomness.
  */
-export function buildQueue(cfg: SessionConfig, vocab: Vocab[], states: SchedState[], ctx: QueueContext): QueueItem[] {
+export function buildQueue(cfg: SessionConfig, cards: Card[], states: SchedState[], ctx: QueueContext & { decks?: Deck[] }): QueueItem[] {
   const size = Math.max(1, cfg.size);
-  const all = candidates(cfg, vocab, states, ctx.now);
+  const decks = new Map((ctx.decks ?? []).map((d) => [d.id, d]));
+  const all = candidates(cfg, cards, states, decks, ctx.now);
   const seen = new Set<string>();
 
   switch (cfg.mode) {
     case 'smart': {
       const reviewBudget = Math.max(0, ctx.settings.maxReviewsPerDay - ctx.reviewsDoneToday);
       const newBudget = Math.max(0, ctx.settings.newPerDay - ctx.newDoneToday);
-      const dueAll = uniqueByVocab(all.filter((c) => c.due).sort(byUrgency), seen);
+      const dueAll = uniqueByCard(all.filter((c) => c.due).sort(byUrgency), seen);
       const newAll = all.filter((c) => c.isNew).sort(byNewOrder);
       // New cards get a fixed share even when a lot is due – and vice versa.
       const reservedNew = Math.min(newBudget, newAll.length, Math.floor(size * NEW_SHARE_WHEN_BUSY));
       // Difficult words that are not yet due also get a fixed (small) share –
       // due cards that no longer fit move to the front of the next session.
       const extraPool = ctx.settings.autoIncludeProblems
-        ? uniqueByVocab(all.filter((c) => c.problem && !c.due && !c.isNew).sort(byUrgency), new Set(dueAll.map((c) => c.v.id)))
+        ? uniqueByCard(all.filter((c) => c.problem && !c.due && !c.isNew).sort(byUrgency), new Set(dueAll.map((c) => c.v.id)))
         : [];
       const reservedExtra = Math.min(extraPool.length, Math.ceil(size * EXTRA_PROBLEM_SHARE), reviewBudget);
       const due = dueAll.slice(0, Math.max(0, Math.min(reviewBudget - reservedExtra, size - reservedNew - reservedExtra)));
       const extra = extraPool.slice(0, reservedExtra);
       const seenNow = new Set([...due, ...extra].map((c) => c.v.id));
       const reviews = [...due, ...extra];
-      const fresh = uniqueByVocab(newAll, seenNow).slice(0, Math.min(newBudget, size - reviews.length));
+      const fresh = uniqueByCard(newAll, seenNow).slice(0, Math.min(newBudget, size - reviews.length));
       return interleave(reviews, fresh).map(toItem);
     }
     case 'problem': {
-      const pool = cfg.vocabIds ? all.filter((c) => !c.isNew) : all.filter((c) => c.problem);
-      return uniqueByVocab(pool.sort(byUrgency), seen).slice(0, size).map(toItem);
+      const pool = cfg.cardIds ? all.filter((c) => !c.isNew) : all.filter((c) => c.problem);
+      return uniqueByCard(pool.sort(byUrgency), seen).slice(0, size).map(toItem);
     }
     case 'new':
-      return uniqueByVocab(all.filter((c) => c.isNew).sort(byNewOrder), seen).slice(0, size).map(toItem);
+      return uniqueByCard(all.filter((c) => c.isNew).sort(byNewOrder), seen).slice(0, size).map(toItem);
     case 'lesson': {
-      const due = uniqueByVocab(all.filter((c) => c.due).sort(byUrgency), seen);
-      const fresh = uniqueByVocab(all.filter((c) => c.isNew).sort(byNewOrder), seen);
-      const rest = uniqueByVocab(all.filter((c) => !c.due && !c.isNew).sort(byUrgency), seen);
+      const due = uniqueByCard(all.filter((c) => c.due).sort(byUrgency), seen);
+      const fresh = uniqueByCard(all.filter((c) => c.isNew).sort(byNewOrder), seen);
+      const rest = uniqueByCard(all.filter((c) => !c.due && !c.isNew).sort(byUrgency), seen);
       return [...interleave(due, fresh), ...rest].slice(0, size).map(toItem);
     }
     case 'exam': {
       // Weakest first: new cards count as "forgotten".
       const ranked = all.map((c) => ({ ...c, urgency: c.isNew ? priorityWeight(c.v.priority) : c.urgency })).sort(byUrgency);
-      return uniqueByVocab(ranked, seen).slice(0, size).map(toItem);
+      return uniqueByCard(ranked, seen).slice(0, size).map(toItem);
     }
     case 'free': {
       const order = (a: Candidate, b: Candidate) => a.v.createdAt - b.v.createdAt;
-      return uniqueByVocab(all.sort(order), seen).slice(0, size).map(toItem);
+      return uniqueByCard(all.sort(order), seen).slice(0, size).map(toItem);
     }
   }
 }

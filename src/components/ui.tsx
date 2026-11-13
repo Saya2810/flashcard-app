@@ -1,6 +1,6 @@
 import { useEffect, useSyncExternalStore, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PRIORITY_LABEL, STATUS_LABEL, type Status } from '../types';
+import { PRIORITY_LABEL, STATUS_LABEL, type DeckColor, type Status } from '../types';
 
 const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(' ');
 export { cx };
@@ -30,6 +30,10 @@ const PATHS: Record<string, string> = {
   target: 'M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm0-4a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0-4h.01',
   flame: 'M12 3.5c.5 3.5 5 5.500 5 10a5 5 0 0 1-10 0c0-1.800.8-3 1.800-4 .2 1.500 1 2.300 1.700 2.500C10.500 9 10.500 6 12 3.500Z',
   eye: 'M2.500 12s3.500-6.500 9.500-6.500S21.500 12 21.500 12s-3.500 6.500-9.500 6.500S2.500 12 2.500 12Zm9.500 3a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z',
+  image: 'M4.500 5.500h15v13h-15zM4.500 15l4-4 3.500 3.500 2.500-2.500 5 5M15 9.500h.01',
+  layers: 'M12 4 3.500 8.500 12 13l8.500-4.500L12 4ZM3.500 12.500 12 17l8.500-4.500M3.500 16.500 12 21l8.500-4.500',
+  keyboard: 'M3.500 7h17v10h-17zM7 10.500h.01M10.500 10.500h.01M14 10.500h.01M17 10.500h.01M7.500 14h9',
+  palette: 'M12 3.500a8.500 8.500 0 1 0 0 17c1.200 0 1.800-.8 1.800-1.700 0-1.300-1.300-1.600-1.300-2.900 0-1 .8-1.700 1.900-1.700h2.100a3.500 3.500 0 0 0 3.500-3.500C20 6.500 16.500 3.500 12 3.500ZM7.500 12h.01M9 8h.01M14 7.500h.01',
   table: 'M4.500 5.500h15v13h-15zM4.500 10h15M4.500 14.500h15M10 5.500v13',
 };
 export function Icon({ name, size = 22, className }: { name: keyof typeof PATHS | string; size?: number; className?: string }) {
@@ -52,7 +56,7 @@ export function Page({ title, back, actions, children, subtitle }: { title: stri
               <Icon name="back" />
             </button>
           )}
-          <h1 className={cx('flex-1 truncate font-bold tracking-tight', back ? 'text-xl' : 'text-[1.75rem]')}>{title}</h1>
+          <h1 className={cx('flex-1 truncate font-bold tracking-tight', back ? 'text-xl' : 'text-[1.9rem]')}>{title}</h1>
           <div className="flex items-center gap-1">{actions}</div>
         </div>
         {subtitle && <div className="text-sm text-muted">{subtitle}</div>}
@@ -68,19 +72,19 @@ export function Card({ children, className, ...rest }: { children: ReactNode; cl
 
 type BtnVariant = 'primary' | 'soft' | 'ghost' | 'danger' | 'ok' | 'bad';
 const BTN: Record<BtnVariant, string> = {
-  primary: 'bg-accent text-on-accent',
-  soft: 'bg-sunken text-ink',
+  primary: 'bg-accent text-on-accent shadow-[0_8px_20px_-10px_rgb(var(--accent)/0.8)]',
+  soft: 'bg-accent-soft text-accent',
   ghost: 'text-accent',
-  danger: 'bg-bad/10 text-bad',
-  ok: 'bg-ok text-white dark:text-[#06281c]',
-  bad: 'bg-bad text-white dark:text-[#3a0b06]',
+  danger: 'bg-bad-soft text-bad',
+  ok: 'bg-ok text-white dark:text-[#062a1d]',
+  bad: 'bg-bad text-white dark:text-[#3a0a10]',
 };
 export function Button({ variant = 'primary', size = 'md', className, children, ...rest }: { variant?: BtnVariant; size?: 'sm' | 'md' | 'lg' } & ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
       type="button"
       className={cx(
-        'inline-flex select-none items-center justify-center gap-2 rounded-2xl font-semibold transition active:scale-[0.98] disabled:opacity-40',
+        'inline-flex select-none items-center justify-center gap-2 rounded-[1.1rem] font-semibold transition duration-150 active:scale-[0.97] disabled:opacity-40',
         size === 'sm' ? 'min-h-[2.5rem] px-3.5 text-sm' : size === 'lg' ? 'min-h-[3.75rem] px-6 text-lg' : 'min-h-[3rem] px-5',
         BTN[variant], className,
       )}
@@ -163,7 +167,7 @@ export function Field({ label, hint, children }: { label: string; hint?: string;
     </label>
   );
 }
-export const inputCls = 'w-full rounded-2xl border border-line bg-surface px-4 py-3 text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none';
+export const inputCls = 'w-full rounded-2xl border border-line bg-surface px-4 py-3 text-ink placeholder:text-muted/60 focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent/15';
 
 export function ProgressBar({ value, color }: { value: number; color?: string }) {
   const pct = Math.round(Math.min(1, Math.max(0, value)) * 100);
@@ -256,7 +260,7 @@ export function Toaster() {
   const msg = useSyncExternalStore((l) => { listeners.add(l); return () => listeners.delete(l); }, () => toastMsg);
   if (!msg) return null;
   return (
-    <div role="status" className="pointer-events-none fixed inset-x-0 top-0 z-[60] flex justify-center px-4" style={{ paddingTop: 'max(env(safe-area-inset-top), 0.75rem)' }}>
+    <div role="status" className="pointer-events-none fixed inset-x-0 z-[60] flex justify-center px-4" style={{ bottom: 'calc(5.25rem + env(safe-area-inset-bottom))' }}>
       <div className="sheet-panel rounded-full bg-ink px-4 py-2.5 text-sm font-medium text-bg shadow-card">{msg.text}</div>
     </div>
   );
@@ -281,3 +285,9 @@ export function Stepper({ value, onChange, min, max, step = 1, label }: { value:
     </div>
   );
 }
+
+/** Small coloured badge for a deck. */
+export function DeckDot({ color, size = 12 }: { color: DeckColor; size?: number }) {
+  return <span aria-hidden="true" className="inline-block shrink-0 rounded-full" style={{ width: size, height: size, background: `rgb(var(--deck-${color}-ink))` }} />;
+}
+export const deckTint = (color: DeckColor) => ({ background: `rgb(var(--deck-${color}))`, color: `rgb(var(--deck-${color}-ink))` });

@@ -58,8 +58,8 @@ export function statusOf(s: Pick<SchedState, 'total' | 'stability' | 'curCorrect
 
 const RANK: Record<Status, number> = { neu: -1, unsicher: 0, bearbeitung: 1, gut: 2, sicher: 3 };
 
-/** Item status = weakest of the directions already practised; "neu" if none has been practised. */
-export function vocabStatus(states: (SchedState | undefined)[]): Status {
+/** Card status = weakest of the directions already practised; "neu" if none has been practised. */
+export function cardStatus(states: (SchedState | undefined)[]): Status {
   const practiced = states.filter((s): s is SchedState => !!s && s.total > 0);
   if (!practiced.length) return 'neu';
   return practiced.map((s) => s.status).sort((a, b) => RANK[a] - RANK[b])[0];

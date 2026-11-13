@@ -1,59 +1,113 @@
-import { addLesson, buildVocab, deleteVocab, type VocabInput } from './repo';
+import type { CardInput, DeckInput } from './repo';
+import { buildCard, buildDeck, deleteCards } from './repo';
 import { db, type AppDB } from './db';
+import { newId } from '../lib/text';
 
 /** Sample data – clearly marked (sample: 1) and removable again in the settings. */
-const VERBS: VocabInput[] = [
-  { persian: 'آمدن', german: 'kommen', translit: 'âmadan', grammar: 'Verb · Präsensstamm آ', exampleFa: 'من به خانه می‌آیم.', exampleDe: 'Ich komme nach Hause.', priority: 5 },
-  { persian: 'رفتن', german: 'gehen', altGerman: ['fahren'], translit: 'raftan', grammar: 'Verb · Präsensstamm رو', exampleFa: 'او به دانشگاه می‌رود.', exampleDe: 'Er/Sie geht zur Universität.', priority: 5 },
-  { persian: 'ماندن', german: 'bleiben', translit: 'mândan', grammar: 'Verb · Präsensstamm مان', priority: 4 },
-  { persian: 'دیدن', german: 'sehen', translit: 'didan', grammar: 'Verb · Präsensstamm بین', priority: 4 },
-  { persian: 'خوردن', german: 'essen', altGerman: ['trinken'], translit: 'xordan', grammar: 'Verb · Präsensstamm خور', priority: 3 },
-  { persian: 'نوشتن', german: 'schreiben', translit: 'neveštan', grammar: 'Verb · Präsensstamm نویس', priority: 3 },
-  { persian: 'خواندن', german: 'lesen', altGerman: ['singen'], translit: 'xândan', grammar: 'Verb · Präsensstamm خوان', priority: 3 },
-  { persian: 'گفتن', german: 'sagen', translit: 'goftan', grammar: 'Verb · Präsensstamm گو', priority: 4 },
-  { persian: 'داشتن', german: 'haben', translit: 'dâštan', grammar: 'Verb · Präsensstamm دار', priority: 5 },
-  { persian: 'بودن', german: 'sein', translit: 'budan', grammar: 'Verb', priority: 5 },
-];
-const DAILY: VocabInput[] = [
-  { persian: 'سلام', german: 'Hallo', translit: 'salâm', priority: 3 },
-  { persian: 'خداحافظ', german: 'Auf Wiedersehen', altGerman: ['Tschüss'], translit: 'xodâhâfez', priority: 3 },
-  { persian: 'خانه', german: 'Haus', altGerman: ['Zuhause'], translit: 'xâne', grammar: 'Nomen', priority: 3 },
-  { persian: 'کتاب', german: 'Buch', translit: 'ketâb', grammar: 'Nomen', exampleFa: 'این کتاب خوب است.', exampleDe: 'Dieses Buch ist gut.', priority: 3 },
-  { persian: 'آب', german: 'Wasser', translit: 'âb', grammar: 'Nomen', priority: 2 },
-  { persian: 'نان', german: 'Brot', translit: 'nân', grammar: 'Nomen', priority: 2 },
-  { persian: 'دانشگاه', german: 'Universität', translit: 'dânešgâh', grammar: 'Nomen', priority: 4 },
-  { persian: 'دوست', german: 'Freund', altGerman: ['Freundin'], translit: 'dust', grammar: 'Nomen', priority: 3 },
-  { persian: 'امروز', german: 'heute', translit: 'emruz', grammar: 'Adverb', priority: 3 },
-  { persian: 'فردا', german: 'morgen', translit: 'fardâ', grammar: 'Adverb', priority: 3 },
+type SampleCard = Omit<CardInput, 'deckId'> & { lesson?: string };
+interface SampleDeck { deck: DeckInput; cards: SampleCard[] }
+
+const SAMPLES: SampleDeck[] = [
+  {
+    deck: {
+      name: 'Beispiel: Persisch – Deutsch', subject: 'Sprachen', color: 'rose', reverse: true, rich: false,
+      description: 'Vokabeln mit Umschrift und Beispielsatz',
+      front: { label: 'Persisch', lang: 'fa', dir: 'rtl', font: 'vazirmatn', scale: 1.1 },
+      back: { label: 'Deutsch', lang: 'de', dir: 'ltr', font: 'system', weight: 700 },
+      fields: [
+        { key: 'umschrift', label: 'Umschrift', dir: 'ltr', font: 'system' },
+        { key: 'beispiel', label: 'Beispiel', dir: 'rtl', font: 'vazirmatn' },
+      ],
+    },
+    cards: [
+      { lesson: 'Verben', front: 'آمدن', back: 'kommen', altBack: ['ankommen'], fields: { umschrift: 'âmadan', beispiel: 'من به خانه می‌آیم.' }, priority: 5 },
+      { lesson: 'Verben', front: 'رفتن', back: 'gehen', altBack: ['fahren'], fields: { umschrift: 'raftan', beispiel: 'او به دانشگاه می‌رود.' }, priority: 5 },
+      { lesson: 'Verben', front: 'خواندن', back: 'lesen', altBack: ['singen'], fields: { umschrift: 'xândan' }, priority: 3 },
+      { lesson: 'Verben', front: 'نوشتن', back: 'schreiben', fields: { umschrift: 'neveštan' }, priority: 3 },
+      { lesson: 'Alltag', front: 'سلام', back: 'Hallo', fields: { umschrift: 'salâm' }, priority: 3 },
+      { lesson: 'Alltag', front: 'کتاب', back: 'Buch', fields: { umschrift: 'ketâb', beispiel: 'این کتاب خوب است.' }, priority: 3 },
+      { lesson: 'Alltag', front: 'دانشگاه', back: 'Universität', fields: { umschrift: 'dânešgâh' }, priority: 4 },
+    ],
+  },
+  {
+    deck: {
+      name: 'Beispiel: Analysis', subject: 'Mathematik', color: 'lavender', rich: true,
+      description: 'Definitionen und Sätze mit Formeln',
+      front: { label: 'Begriff', font: 'rounded', scale: 1 },
+      back: { label: 'Definition', font: 'serif', scale: 0.9, weight: 400 },
+    },
+    cards: [
+      { lesson: 'Grenzwerte', front: 'Grenzwert einer Folge', back: '$\\lim_{n\\to\\infty} a_n = a$ genau dann, wenn\n$$\\forall \\varepsilon > 0\\ \\exists N\\ \\forall n \\ge N: |a_n - a| < \\varepsilon$$', priority: 5 },
+      { lesson: 'Grenzwerte', front: 'Stetigkeit (ε-δ)', back: '$f$ ist stetig in $x_0$, wenn\n$$\\forall \\varepsilon>0\\ \\exists \\delta>0: |x-x_0|<\\delta \\Rightarrow |f(x)-f(x_0)|<\\varepsilon$$', priority: 4 },
+      { lesson: 'Ableitungen', front: 'Ableitung von $\\sin x$', back: '$\\cos x$', priority: 3 },
+      { lesson: 'Ableitungen', front: 'Kettenregel', back: '$$(f \\circ g)\'(x) = f\'(g(x)) \\cdot g\'(x)$$', priority: 4 },
+      { lesson: 'Integrale', front: 'Hauptsatz der Differential- und Integralrechnung', back: 'Ist $F$ eine Stammfunktion von $f$, dann gilt\n$$\\int_a^b f(x)\\,dx = F(b) - F(a)$$', priority: 5 },
+    ],
+  },
+  {
+    deck: {
+      name: 'Beispiel: Physik', subject: 'Physik', color: 'sky', rich: true, reverse: true,
+      description: 'Formeln in beide Richtungen',
+      front: { label: 'Größe', font: 'rounded' },
+      back: { label: 'Formel', font: 'serif', scale: 1.15, weight: 400 },
+    },
+    cards: [
+      { front: 'Kinetische Energie', back: '$E_\\text{kin} = \\tfrac{1}{2} m v^2$', priority: 4 },
+      { front: 'Masse-Energie-Äquivalenz', back: '$E = mc^2$', priority: 3 },
+      { front: 'Newtons zweites Gesetz', back: '$\\vec F = m \\vec a$', priority: 4 },
+      { front: 'Ohmsches Gesetz', back: '$U = R \\cdot I$', priority: 3 },
+    ],
+  },
+  {
+    deck: {
+      name: 'Beispiel: Python', subject: 'Programmierung', color: 'mint', rich: true,
+      description: 'Code-Schnipsel auswendig können',
+      front: { label: 'Aufgabe', font: 'system' },
+      back: { label: 'Code', font: 'mono', scale: 0.9, weight: 400 },
+    },
+    cards: [
+      { front: 'Liste umkehren (neue Liste)', back: '```python\nreversed_list = my_list[::-1]\n```', priority: 3 },
+      { front: 'Wörterbuch nach Werten sortieren', back: '```python\nsorted(d.items(), key=lambda kv: kv[1])\n```', priority: 3 },
+      { front: 'Datei zeilenweise lesen', back: '```python\nwith open("datei.txt", encoding="utf-8") as f:\n    for line in f:\n        print(line.rstrip())\n```', priority: 4 },
+    ],
+  },
 ];
 
 export async function loadSampleData(database: AppDB = db): Promise<number> {
-  if (await database.vocab.where('sample').equals(1).count()) return 0;
-  const sets: [string, string, VocabInput[]][] = [
-    ['Beispiel – Grundverben', 'Beispieldaten zum Ausprobieren', VERBS],
-    ['Beispiel – Alltag', 'Beispieldaten zum Ausprobieren', DAILY],
-  ];
-  let n = 0;
-  let t = Date.now();
-  for (const [name, desc, items] of sets) {
-    const existing = await database.lessons.where('name').equals(name).first();
-    const lesson = existing ?? (await addLesson(name, desc, 1, database));
-    await database.vocab.bulkAdd(items.map((i) => buildVocab({ ...i, lessonId: lesson.id, tags: ['Beispiel'], sample: 1 }, t++)));
-    n += items.length;
-  }
-  return n;
+  const d = database;
+  if (await d.decks.where('sample').equals(1).count()) return 0;
+  return d.transaction('rw', d.decks, d.lessons, d.cards, async () => {
+    let n = 0;
+    let t = Date.now();
+    for (const s of SAMPLES) {
+      if (await d.decks.where('name').equals(s.deck.name).count()) continue;
+      const deck = buildDeck({ ...s.deck, sample: 1 });
+      await d.decks.add(deck);
+      const lessons = new Map<string, string>();
+      for (const name of new Set(s.cards.map((c) => c.lesson).filter((x): x is string => !!x))) {
+        const id = newId();
+        await d.lessons.add({ id, deckId: deck.id, name, description: '', createdAt: t, lastPracticedAt: 0 });
+        lessons.set(name, id);
+      }
+      await d.cards.bulkAdd(s.cards.map(({ lesson, ...c }) => buildCard({ ...c, deckId: deck.id, lessonId: lesson ? lessons.get(lesson) : '', tags: ['Beispiel'], sample: 1 }, t++)));
+      n += s.cards.length;
+    }
+    return n;
+  });
 }
 
 /**
- * Removes all sample items with their history and subtracts their answers
+ * Removes all sample decks and sample cards with their history and subtracts their answers
  * from the daily statistics – real progress stays untouched.
  */
 export async function removeSampleData(database: AppDB = db): Promise<number> {
   const d = database;
-  return d.transaction('rw', [d.vocab, d.lessons, d.states, d.reviews, d.days], async () => {
-    const ids = await d.vocab.where('sample').equals(1).primaryKeys();
+  return d.transaction('rw', [d.decks, d.lessons, d.cards, d.states, d.reviews, d.days], async () => {
+    const sampleDecks = await d.decks.where('sample').equals(1).toArray();
+    const ids = new Set(await d.cards.where('sample').equals(1).primaryKeys());
+    for (const deck of sampleDecks) for (const id of await d.cards.where('deckId').equals(deck.id).primaryKeys()) ids.add(id);
     const sub = new Map<string, { reviews: number; correct: number; incorrect: number; newCards: number; relearn: number }>();
-    await d.reviews.where('vocabId').anyOf(ids).each((e) => {
+    await d.reviews.where('cardId').anyOf([...ids]).each((e) => {
       const r = sub.get(e.day) ?? { reviews: 0, correct: 0, incorrect: 0, newCards: 0, relearn: 0 };
       if (e.kind === 'relearn') r.relearn++;
       else {
@@ -77,13 +131,11 @@ export async function removeSampleData(database: AppDB = db): Promise<number> {
       if (next.reviews === 0 && next.relearn === 0) await d.days.delete(day);
       else await d.days.put(next);
     }
-    await deleteVocab(ids, d);
-    const sampleLessons = await d.lessons.where('sample').equals(1).toArray();
-    for (const l of sampleLessons) {
-      // Only delete the lesson if the user has not put their own items into it.
-      if ((await d.vocab.where('lessonId').equals(l.id).count()) === 0) await d.lessons.delete(l.id);
-      else await d.lessons.update(l.id, { sample: 0 });
+    await deleteCards([...ids], d);
+    for (const deck of sampleDecks) {
+      await d.lessons.where('deckId').equals(deck.id).delete();
+      await d.decks.delete(deck.id);
     }
-    return ids.length;
+    return ids.size;
   });
 }

@@ -7,15 +7,14 @@ export default {
     extend: {
       colors: {
         bg: v('bg'), surface: v('surface'), sunken: v('sunken'), line: v('line'),
-        ink: v('ink'), muted: v('muted'), accent: v('accent'), 'on-accent': v('on-accent'),
-        ok: v('ok'), bad: v('bad'), star: v('star'),
+        ink: v('ink'), muted: v('muted'), accent: v('accent'), 'accent-soft': v('accent-soft'), 'on-accent': v('on-accent'),
+        ok: v('ok'), 'ok-soft': v('ok-soft'), bad: v('bad'), 'bad-soft': v('bad-soft'), star: v('star'),
       },
-      fontFamily: {
-        sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Text"', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
-        fa: ['Vazirmatn', '"Geeza Pro"', 'Tahoma', 'sans-serif'],
+      borderRadius: { card: '1.5rem' },
+      boxShadow: {
+        card: '0 1px 2px rgb(110 40 80 / 0.05), 0 10px 30px -14px rgb(150 50 100 / 0.22)',
+        lift: '0 2px 4px rgb(110 40 80 / 0.06), 0 22px 44px -18px rgb(150 50 100 / 0.32)',
       },
-      borderRadius: { card: '1.375rem' },
-      boxShadow: { card: '0 1px 2px rgb(20 33 43 / 0.05), 0 8px 24px -12px rgb(20 33 43 / 0.18)' },
     },
   },
   plugins: [],

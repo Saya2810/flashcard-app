@@ -1,7 +1,9 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect } from 'react';
 import { getSettings } from '../db/repo';
-import { DEFAULT_SETTINGS, type AppSettings } from '../types';
+import { DEFAULT_SETTINGS, FONT_STACK, type AppSettings } from '../types';
+
+const UI_FONTS: Record<string, string> = { system: FONT_STACK.system, rounded: FONT_STACK.rounded, serif: FONT_STACK.serif };
 
 export function useSettings(): AppSettings {
   return useLiveQuery(() => getSettings(), [], DEFAULT_SETTINGS);
@@ -17,7 +19,7 @@ export function useApplySettings(s: AppSettings) {
     const apply = () => {
       const dark = s.theme === 'dark' || (s.theme === 'system' && !!mq?.matches);
       document.documentElement.classList.toggle('dark', dark);
-      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#0C1218' : '#F2F5F8');
+      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#1A1117' : '#FCF1F5');
     };
     apply();
     mq?.addEventListener('change', apply);
@@ -25,6 +27,8 @@ export function useApplySettings(s: AppSettings) {
   }, [s.theme]);
   useEffect(() => {
     document.documentElement.style.setProperty('--card-scale', String(s.cardFontScale));
-    document.documentElement.style.setProperty('--fa-scale', String(s.persianFontScale));
-  }, [s.cardFontScale, s.persianFontScale]);
+  }, [s.cardFontScale]);
+  useEffect(() => {
+    document.documentElement.style.setProperty('--ui-font', UI_FONTS[s.uiFont] ?? UI_FONTS.rounded);
+  }, [s.uiFont]);
 }

@@ -1,5 +1,8 @@
 # Free HTTPS hosting via GitHub Pages.
 # One-time setup in the repository: Settings → Pages → Source: "GitHub Actions".
+#
+# Publishes the universal app from `main` at the site root and the original
+# Persian–German app from the branch `legacy/persian-german` under /legacy/.
 name: Deploy
 on:
   push:
@@ -20,6 +23,8 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -27,6 +32,13 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+      - name: Build the original Persian–German version into /legacy/
+        run: |
+          git worktree add ../legacy origin/legacy/persian-german
+          cd ../legacy
+          npm ci
+          npx vite build
+          cp -r dist "$GITHUB_WORKSPACE/dist/legacy"
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

@@ -1,14 +1,14 @@
 import { db, stateId, type AppDB } from '../db/db';
 import { dayKey } from '../lib/dates';
-import { newId } from '../lib/persian';
+import { newId } from '../lib/text';
 import { STATUS_ORDER, type DayStats, type Direction, type ReviewKind, type SchedState, type Status } from '../types';
-import { isProblem, statusOf, vocabStatus } from './metrics';
+import { cardStatus, isProblem, statusOf } from './metrics';
 import { retrievability, schedule } from './scheduler';
 
 export const emptyDay = (day: string): DayStats => ({ day, reviews: 0, correct: 0, incorrect: 0, newCards: 0, relearn: 0, snapshot: null });
 
 export async function statusCounts(database: AppDB = db): Promise<Record<Status, number>> {
-  const counts = await Promise.all(STATUS_ORDER.map((s) => database.vocab.where('status').equals(s).count()));
+  const counts = await Promise.all(STATUS_ORDER.map((s) => database.cards.where('status').equals(s).count()));
   return Object.fromEntries(STATUS_ORDER.map((s, i) => [s, counts[i]])) as Record<Status, number>;
 }
 
@@ -31,31 +31,33 @@ export function applyCounters(prev: SchedState | undefined, correct: boolean, no
 }
 
 export interface AnswerInput {
-  vocabId: string;
+  cardId: string;
   direction: Direction;
   correct: boolean;
   sessionId: string;
   kind?: ReviewKind;
+  typed?: string;
   now?: number;
 }
 
 /**
- * Stores one answer atomically: event, scheduling state, vocabulary cache, daily stats, session.
+ * Stores one answer atomically: event, scheduling state, card cache, daily stats, session.
  * kind 'relearn' (a repeat within the same session) is logged but changes neither FSRS
  * nor the error rate – otherwise the same mistake would be penalised several times.
+ * Only the user's own Richtig/Falsch decides `correct`; typed text is stored for reference only.
  */
 export async function recordAnswer(input: AnswerInput, database: AppDB = db): Promise<SchedState | null> {
   const now = input.now ?? Date.now();
   const kind = input.kind ?? 'scheduled';
   const d = database;
-  return d.transaction('rw', [d.vocab, d.states, d.reviews, d.days, d.sessions, d.lessons], async () => {
-    const v = await d.vocab.get(input.vocabId);
-    if (!v) return null;
-    const id = stateId(input.vocabId, input.direction);
+  return d.transaction('rw', [d.cards, d.states, d.reviews, d.days, d.sessions, d.lessons, d.decks], async () => {
+    const c = await d.cards.get(input.cardId);
+    if (!c) return null;
+    const id = stateId(c.id, input.direction);
     const prev = await d.states.get(id);
     const day = dayKey(now);
     const dayRow = (await d.days.get(day)) ?? emptyDay(day);
-    const base = { id: newId(), vocabId: v.id, direction: input.direction, ts: now, day, correct: input.correct, sessionId: input.sessionId };
+    const base = { id: newId(), cardId: c.id, deckId: c.deckId, direction: input.direction, ts: now, day, correct: input.correct, sessionId: input.sessionId, ...(input.typed ? { typed: input.typed } : {}) };
 
     if (kind === 'relearn') {
       await d.reviews.add({ ...base, kind, meta: null });
@@ -65,9 +67,9 @@ export async function recordAnswer(input: AnswerInput, database: AppDB = db): Pr
     }
 
     const wasNew = !prev || prev.total === 0;
-    const sched = schedule(prev, input.correct, v.priority, now);
+    const sched = schedule(prev, input.correct, c.priority, now);
     const next: SchedState = {
-      id, vocabId: v.id, direction: input.direction,
+      id, cardId: c.id, deckId: c.deckId, direction: input.direction,
       ...sched,
       ...applyCounters(prev, input.correct, now),
       status: 'neu', problem: 0,
@@ -79,7 +81,7 @@ export async function recordAnswer(input: AnswerInput, database: AppDB = db): Pr
     await d.reviews.add({
       ...base, kind,
       meta: {
-        priority: v.priority,
+        priority: c.priority,
         wasNew,
         retrievability: retrievability(prev, now),
         stabilityBefore: prev?.stability ?? 0,
@@ -90,13 +92,14 @@ export async function recordAnswer(input: AnswerInput, database: AppDB = db): Pr
       },
     });
 
-    const other = await d.states.get(stateId(v.id, input.direction === 'fa-de' ? 'de-fa' : 'fa-de'));
-    await d.vocab.update(v.id, {
+    const other = await d.states.get(stateId(c.id, input.direction === 'fwd' ? 'rev' : 'fwd'));
+    await d.cards.update(c.id, {
       lastReviewAt: now,
-      status: vocabStatus([next, other]),
+      status: cardStatus([next, other]),
       problem: next.problem || other?.problem ? 1 : 0,
     });
-    if (v.lessonId) await d.lessons.update(v.lessonId, { lastPracticedAt: now });
+    if (c.lessonId) await d.lessons.update(c.lessonId, { lastPracticedAt: now });
+    await d.decks.update(c.deckId, { lastPracticedAt: now });
 
     dayRow.reviews++;
     if (input.correct) dayRow.correct++; else dayRow.incorrect++;
@@ -114,15 +117,5 @@ export async function recordAnswer(input: AnswerInput, database: AppDB = db): Pr
       });
     }
     return next;
-  });
-}
-
-/** Recompute an item's cached fields from its scheduling states. */
-export async function refreshVocabCache(vocabId: string, database: AppDB = db): Promise<void> {
-  const states = await database.states.where('vocabId').equals(vocabId).toArray();
-  await database.vocab.update(vocabId, {
-    status: vocabStatus(states),
-    problem: states.some((s) => s.problem) ? 1 : 0,
-    lastReviewAt: Math.max(0, ...states.map((s) => s.lastReview)),
   });
 }
