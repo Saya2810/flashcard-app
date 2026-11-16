@@ -12,9 +12,9 @@ export default defineConfig({
       registerType: 'prompt',
       includeAssets: ['favicon.svg', 'icons/apple-touch-icon.png', 'beispiel.csv'],
       manifest: {
-        name: 'Lernkarten',
-        short_name: 'Lernkarten',
-        description: 'Kostenlose Lernkarten für jedes Fach – mit intelligenter Wiederholung, offline',
+        name: 'Generalised Flashcards',
+        short_name: 'Generalised Flashcards',
+        description: 'Vokabeln, Formeln und Definitionen lernen – mit intelligenter Wiederholung, offline',
         lang: 'de',
         dir: 'ltr',
         start_url: '.',
@@ -31,11 +31,8 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2,csv}'],
-        globIgnores: ['legacy/**'],
         cleanupOutdatedCaches: true,
         navigateFallback: 'index.html',
-        // The original Persian–German app is deployed under /legacy/ with its own service worker.
-        navigateFallbackDenylist: [/\/legacy\//],
       },
     }),
   ],

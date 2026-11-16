@@ -187,7 +187,7 @@ export default function SettingsPage() {
               : <Button variant="soft" className="w-full" onClick={async () => { toast(t('{n} Beispielkarten geladen', { n: await loadSampleData() })); }} data-testid="load-sample">{t('Beispiele laden')}</Button>}
           </Card>
         </section>
-        <p className="px-1 text-center text-xs text-muted">{t('Lernkarten 2.0 – kostenlos, ohne Konto, ohne Werbung. Funktioniert offline.')}</p>
+        <p className="px-1 text-center text-xs text-muted">{t('Generalised Flashcards – kostenlos, ohne Konto, ohne Werbung. Funktioniert offline.')}</p>
       </div>
 
       <Confirm open={!!check && !check.ok} title={t('Sicherung nicht lesbar')} confirmLabel={t('Verstanden')} onConfirm={() => setCheck(null)} onCancel={() => setCheck(null)}

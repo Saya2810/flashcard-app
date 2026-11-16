@@ -358,7 +358,7 @@ export const en: Record<string, string> = {
   "Beispielstapel sind geladen. Sie sind als „Beispiel“ markiert.": "Example decks are loaded. They are marked as “Example”.",
   "Vier kleine Beispielstapel: Persisch, Analysis mit Formeln, Physik und Python-Code.": "Four small example decks: Persian, calculus with formulas, physics and Python code.",
   "Beispiele entfernen": "Remove examples",
-  "Lernkarten 2.0 – kostenlos, ohne Konto, ohne Werbung. Funktioniert offline.": "Learning cards 2.0 – free, no account, no ads. Works offline.",
+  "Generalised Flashcards – kostenlos, ohne Konto, ohne Werbung. Funktioniert offline.": "Generalised Flashcards – free, no account, no ads. Works offline.",
   "Sicherung nicht lesbar": "Backup not readable",
   "Verstanden": "Understood",
   "Sicherung wiederherstellen": "Restore backup",
