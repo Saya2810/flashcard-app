@@ -10,6 +10,8 @@ Use it for vocabulary, formulas, definitions, code or anything else you want to 
   <img src="docs/screenshots/card.png" width="180" alt="Card">
   <img src="docs/screenshots/typed-answer.png" width="180" alt="Typed answer">
   <img src="docs/screenshots/dark.png" width="180" alt="Dark mode">
+  <img src="docs/screenshots/modes.png" width="180" alt="All study modes">
+  <img src="docs/screenshots/stats.png" width="180" alt="Statistics">
 </p>
 
 **Web app:** https://saya2810.github.io/flashcard-app/
