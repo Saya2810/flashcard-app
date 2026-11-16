@@ -2,7 +2,6 @@ import type { ConjScheme, FormReview, FormState, Verb } from '../conj/types';
 import { toCsv } from '../lib/csv';
 import { DEFAULT_SETTINGS, type AppSettings, type Card, type DayStats, type Deck, type LearningSession, type Lesson, type Media, type ReviewEvent, type SchedState } from '../types';
 import { db, SCHEMA_VERSION, type AppDB } from './db';
-import { convertLegacy, importConverted, LEGACY_BACKUP_FORMAT, type Converted, type LegacyData } from './legacy';
 import { getSettings } from './repo';
 import { t } from '../i18n';
 
@@ -63,11 +62,9 @@ export async function createBackup(database: AppDB = db): Promise<BackupFile> {
 export interface BackupCheck {
   ok: boolean;
   errors: string[];
-  /** 'legacy' = backup of the original Persian–German app, converted on restore. */
-  kind: 'current' | 'legacy' | null;
+  kind: 'current' | null;
   summary: { decks: number; cards: number; reviews: number; verbs: number; exportedAt: string } | null;
   backup: BackupFile | null;
-  legacy: Converted | null;
 }
 
 const isObj = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x);
@@ -86,11 +83,10 @@ function migrateBackup(raw: Record<string, unknown>): Record<string, unknown> {
 
 /** Validates a backup file completely BEFORE anything is written. */
 export function validateBackup(text: string): BackupCheck {
-  const fail = (...errors: string[]): BackupCheck => ({ ok: false, errors, kind: null, summary: null, backup: null, legacy: null });
+  const fail = (...errors: string[]): BackupCheck => ({ ok: false, errors, kind: null, summary: null, backup: null });
   let raw: unknown;
   try { raw = JSON.parse(text); } catch { return fail(t('Die Datei ist kein gültiges JSON.')); }
   if (!isObj(raw)) return fail(t('Das ist keine Sicherung dieser App.'));
-  if (raw.format === LEGACY_BACKUP_FORMAT) return validateLegacy(raw);
   if (raw.format !== BACKUP_FORMAT) return fail(t('Das ist keine Sicherung dieser App.'));
   if (!isNum(raw.version)) return fail(t('Die Versionsangabe der Sicherung fehlt.'));
   if (raw.version > BACKUP_VERSION) return fail(t('Die Sicherung stammt aus einer neueren App-Version (Format {v}). Bitte zuerst die App aktualisieren.', { v: raw.version }));
@@ -132,23 +128,8 @@ export function validateBackup(text: string): BackupCheck {
   const backup = raw as unknown as BackupFile;
   backup.data.settings = { ...DEFAULT_SETTINGS, ...(isObj(data.settings) ? (data.settings as Partial<AppSettings>) : {}), key: 'app' };
   return {
-    ok: true, errors: [], kind: 'current', legacy: null, backup,
+    ok: true, errors: [], kind: 'current', backup,
     summary: { decks: backup.data.decks.length, cards: backup.data.cards.length, reviews: backup.data.reviews.length + backup.data.formReviews.length, verbs: backup.data.verbs.length, exportedAt: isStr(backup.exportedAt) ? backup.exportedAt : '' },
-  };
-}
-
-function validateLegacy(raw: Record<string, unknown>): BackupCheck {
-  const fail = (e: string): BackupCheck => ({ ok: false, errors: [e], kind: null, summary: null, backup: null, legacy: null });
-  const data = raw.data;
-  if (!isObj(data)) return fail(t('Der Datenteil der Sicherung fehlt.'));
-  for (const tb of ['vocab', 'lessons', 'states', 'reviews', 'sessions', 'days']) if (!Array.isArray(data[tb])) return fail(t('Tabelle „{name}“ fehlt oder ist beschädigt.', { name: tb }));
-  const vocab = data.vocab as unknown[];
-  const bad = vocab.findIndex((v) => !isObj(v) || !isStr(v.id) || !isStr(v.persian) || !isStr(v.german) || !v.persian || !v.german);
-  if (bad >= 0) return fail(t('Vokabel Nr. {n} ist unvollständig.', { n: bad + 1 }));
-  const converted = convertLegacy(data as unknown as LegacyData);
-  return {
-    ok: true, errors: [], kind: 'legacy', backup: null, legacy: converted,
-    summary: { decks: 1, cards: converted.cards.length, reviews: converted.reviews.length, verbs: 0, exportedAt: isStr(raw.exportedAt) ? raw.exportedAt : '' },
   };
 }
 
@@ -166,10 +147,6 @@ async function clearAll(d: AppDB) {
 export async function restoreBackup(check: BackupCheck, mode: RestoreMode, database: AppDB = db): Promise<{ added: number; addedVerbs: number }> {
   const d = database;
   return d.transaction('rw', [d.decks, d.lessons, d.cards, d.media, d.states, d.reviews, d.sessions, d.days, d.settings, d.schemes, d.verbs, d.formStates, d.formReviews], async () => {
-    if (check.kind === 'legacy' && check.legacy) {
-      if (mode === 'replace') await clearAll(d);
-      return { ...(await importConverted(check.legacy, { first: mode === 'replace' }, d)), addedVerbs: 0 };
-    }
     const data = check.backup!.data;
     if (mode === 'replace') {
       await clearAll(d);

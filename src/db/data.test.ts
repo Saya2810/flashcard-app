@@ -1,4 +1,3 @@
-import Dexie from 'dexie';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { parseCsv, toCsv } from '../lib/csv';
 import { closest, diff, isIdentical } from '../lib/diff';
@@ -8,14 +7,12 @@ import { answers, card, deck, resetDb } from '../test/helpers';
 import { BACKUP_FORMAT, createBackup, exportCsv, restoreBackup, validateBackup } from './backup';
 import { db, stateId } from './db';
 import { defaultMapping, guessMapping, importRows, markDuplicates, parseBulk, rowsFromTable } from './import';
-import { autoImportLegacy, convertLegacy, LEGACY_DB, LEGACY_DECK_ID, type LegacyData } from './legacy';
 import { pruneMedia } from './media';
 import { addLesson, getSettings, saveSettings } from './repo';
 import { loadSampleData, removeSampleData } from './sample';
 
 beforeEach(async () => {
   await resetDb();
-  await Dexie.delete(LEGACY_DB);
 });
 
 describe('Text in any script', () => {
@@ -283,86 +280,6 @@ describe('Backup and restore', () => {
   });
 });
 
-/* -------- Legacy Persian–German data -------- */
-const T = new Date(2026, 0, 10, 10).getTime();
-function legacyData(): LegacyData {
-  return {
-    vocab: [
-      { id: 'v1', persian: 'آمدن', german: 'kommen', altGerman: ['ankommen'], translit: 'âmadan', grammar: 'Verb', exampleFa: 'من می‌آیم.', exampleDe: 'Ich komme.', notes: 'n', lessonId: 'L1', priority: 5, tags: ['Verb'], createdAt: T, updatedAt: T, lastReviewAt: T, sample: 0 },
-      { id: 'v2', persian: 'رفتن', german: 'gehen', lessonId: '', priority: 3, tags: [], createdAt: T + 1 },
-    ],
-    lessons: [{ id: 'L1', name: 'Lektion 1', description: '', createdAt: T, lastPracticedAt: T }],
-    states: [
-      { id: 'v1|fa-de', vocabId: 'v1', direction: 'fa-de', due: T + 86_400_000, stability: 3, difficulty: 5, reps: 2, lapses: 0, fsrsState: 2, lastReview: T, scheduledDays: 3, total: 3, correct: 1, incorrect: 2, curCorrect: 0, curIncorrect: 2, maxIncorrect: 2, lastIncorrectAt: T, firstReviewAt: T, recent: '100', status: 'unsicher', problem: 1 },
-      { id: 'v1|de-fa', vocabId: 'v1', direction: 'de-fa', due: T + 86_400_000, stability: 8, difficulty: 4, reps: 1, lapses: 0, fsrsState: 2, lastReview: T, scheduledDays: 8, total: 1, correct: 1, incorrect: 0, curCorrect: 1, curIncorrect: 0, maxIncorrect: 0, lastIncorrectAt: 0, firstReviewAt: T, recent: '1', status: 'gut', problem: 0 },
-    ],
-    reviews: [
-      { id: 'r1', vocabId: 'v1', direction: 'fa-de', ts: T, day: '2026-01-10', correct: false, sessionId: 's1', kind: 'scheduled', meta: null },
-      { id: 'r2', vocabId: 'v1', direction: 'de-fa', ts: T, day: '2026-01-10', correct: true, sessionId: 's1', kind: 'scheduled', meta: null },
-    ],
-    sessions: [{ id: 's1', mode: 'smart', direction: 'mixed', lessonIds: [], startedAt: T, endedAt: T, planned: 2, answered: 2, correct: 1, incorrect: 1 }],
-    days: [{ day: '2026-01-10', reviews: 2, correct: 1, incorrect: 1, newCards: 1, relearn: 0, snapshot: null }],
-    settings: { key: 'app', theme: 'dark', dailyGoal: 40, defaultDirection: 'de-fa', persianFontScale: 1.2 },
-  };
-}
-
-async function writeLegacyDb(data: LegacyData) {
-  const old = new Dexie(LEGACY_DB);
-  old.version(1).stores({ vocab: 'id', lessons: 'id', states: 'id', reviews: 'id', sessions: 'id', days: 'day', settings: 'key' });
-  await old.open();
-  await old.table('vocab').bulkAdd(data.vocab);
-  await old.table('lessons').bulkAdd(data.lessons);
-  await old.table('states').bulkAdd(data.states);
-  await old.table('reviews').bulkAdd(data.reviews);
-  await old.table('sessions').bulkAdd(data.sessions);
-  await old.table('days').bulkAdd(data.days);
-  await old.table('settings').put(data.settings);
-  old.close();
-}
-
-describe('Migration from the Persian–German version', () => {
-  it('converts vocabulary, both directions, history and settings', () => {
-    const c = convertLegacy(legacyData());
-    expect(c.deck).toMatchObject({ id: LEGACY_DECK_ID, name: 'Persisch – Deutsch', reverse: true, rich: false, front: { lang: 'fa', dir: 'rtl', font: 'vazirmatn' }, back: { lang: 'de' } });
-    expect(c.cards[0]).toMatchObject({ id: 'v1', front: 'آمدن', back: 'kommen', altBack: ['ankommen'], fields: { umschrift: 'âmadan', grammatik: 'Verb', beispiel_fa: 'من می‌آیم.', beispiel_de: 'Ich komme.' }, lessonId: 'L1', status: 'unsicher', problem: 1 });
-    expect(c.states.map((s) => s.id)).toEqual(['v1|fwd', 'v1|rev']);
-    expect(c.reviews.map((r) => r.direction)).toEqual(['fwd', 'rev']);
-    expect(c.lessons[0]).toMatchObject({ id: 'L1', deckId: LEGACY_DECK_ID });
-    expect(c.settings).toMatchObject({ theme: 'dark', dailyGoal: 40, defaultDirection: 'rev' });
-  });
-
-  it('imports the old database once on start, read-only, and keeps everything usable', async () => {
-    await writeLegacyDb(legacyData());
-    expect(await autoImportLegacy()).toBe(2);
-    expect(await db.cards.count()).toBe(2);
-    expect((await db.states.get('v1|fwd'))?.incorrect).toBe(2);
-    expect((await db.cards.get('v1'))?.problem).toBe(1);
-    expect(await db.days.get('2026-01-10')).toMatchObject({ reviews: 2 });
-    expect(await getSettings()).toMatchObject({ dailyGoal: 40, theme: 'dark' });
-    // second start: nothing happens; the old database is untouched
-    expect(await autoImportLegacy()).toBe(0);
-    expect(await db.cards.count()).toBe(2);
-    const old = new Dexie(LEGACY_DB); old.version(1).stores({ vocab: 'id' }); await old.open();
-    expect(await old.table('vocab').count()).toBe(2);
-    old.close();
-  });
-
-  it('without an old database nothing is imported', async () => {
-    expect(await autoImportLegacy()).toBe(0);
-    expect(await db.decks.count()).toBe(0);
-  });
-
-  it('accepts legacy backup files and merges without duplicating', async () => {
-    const file = JSON.stringify({ format: 'persisch-karten-backup', version: 1, exportedAt: '2026-01-11T10:00:00Z', data: legacyData() });
-    const check = validateBackup(file);
-    expect(check).toMatchObject({ ok: true, kind: 'legacy', summary: { cards: 2, decks: 1 } });
-    expect((await restoreBackup(check, 'merge')).added).toBe(2);
-    expect((await restoreBackup(validateBackup(file), 'merge')).added).toBe(0);
-    expect(await db.decks.count()).toBe(1);
-    expect(validateBackup(JSON.stringify({ format: 'persisch-karten-backup', version: 1, data: { ...legacyData(), vocab: [{ id: 'x' }] } })).ok).toBe(false);
-  });
-});
-
 describe('Sample data', () => {
   it('is marked, loads once and is removed cleanly', async () => {
     const own = await card('Meer', 'sea');
@@ -370,7 +287,7 @@ describe('Sample data', () => {
     const n = await loadSampleData();
     expect(n).toBeGreaterThan(10);
     expect(await loadSampleData()).toBe(0);
-    expect(await db.decks.where('sample').equals(1).count()).toBe(4);
+    expect(await db.decks.where('sample').equals(1).count()).toBe(3);
     const sample = await db.cards.where('sample').equals(1).toArray();
     expect(sample.every((c) => c.tags.includes('Beispiel'))).toBe(true);
     await answers(sample[0].id, '00');

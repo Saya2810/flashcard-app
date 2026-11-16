@@ -241,7 +241,6 @@ export interface AppSettings {
   diffIgnoreCase: boolean;
   diffIgnorePunctuation: boolean;
   lastBackupAt: number;
-  legacyImportedAt: number;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -262,7 +261,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
   diffIgnoreCase: false,
   diffIgnorePunctuation: false,
   lastBackupAt: 0,
-  legacyImportedAt: 0,
 };
 
 export interface SessionConfig {

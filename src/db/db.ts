@@ -5,9 +5,6 @@ import type { AppSettings, Card, DayStats, Deck, LearningSession, Lesson, Media,
 /**
  * IndexedDB schema of the universal app (database „lernkarten“).
  *
- * The original Persian–German app used the database „persisch-karten“. It is left untouched
- * (the legacy version keeps working on it) and its content is copied in by src/db/legacy.ts.
- *
  * Migrations: append a NEW version for every schema change, never edit an existing one:
  *
  *   this.version(2).stores({ cards: '..., newField' }).upgrade(async (tx) => {

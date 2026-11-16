@@ -1,4 +1,4 @@
-# Generalised Flashcards
+# Flashcards
 
 Flashcard app for iPhone. Works offline. No account, no ads, no App Store.
 

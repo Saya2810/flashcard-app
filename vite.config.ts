@@ -12,8 +12,8 @@ export default defineConfig({
       registerType: 'prompt',
       includeAssets: ['favicon.svg', 'icons/apple-touch-icon.png', 'beispiel.csv'],
       manifest: {
-        name: 'Generalised Flashcards',
-        short_name: 'Generalised Flashcards',
+        name: 'Flashcards',
+        short_name: 'Flashcards',
         description: 'Vokabeln, Formeln und Definitionen lernen – mit intelligenter Wiederholung, offline',
         lang: 'de',
         dir: 'ltr',

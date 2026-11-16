@@ -107,32 +107,6 @@ test('download a backup and restore it after data loss', async ({ page }) => {
   await expect(page.getByText('Sicherung nicht lesbar')).toBeVisible();
 });
 
-test('takes over data from the original Persian–German app on first start', async ({ page }) => {
-  await page.goto('/');
-  // Recreate the legacy database the way the old app stored it, then start fresh.
-  await page.evaluate(() => new Promise<void>((resolve, reject) => {
-    indexedDB.deleteDatabase('lernkarten');
-    const req = indexedDB.open('persisch-karten', 10);
-    req.onupgradeneeded = () => {
-      const d = req.result;
-      for (const [name, key] of [['vocab', 'id'], ['lessons', 'id'], ['states', 'id'], ['reviews', 'id'], ['sessions', 'id'], ['days', 'day'], ['settings', 'key']]) d.createObjectStore(name, { keyPath: key });
-    };
-    req.onsuccess = () => {
-      const d = req.result;
-      const tx = d.transaction(['vocab', 'lessons'], 'readwrite');
-      tx.objectStore('lessons').put({ id: 'L1', name: 'Lektion 1', description: '', createdAt: 1, lastPracticedAt: 0 });
-      tx.objectStore('vocab').put({ id: 'v1', persian: 'آمدن', german: 'kommen', altGerman: [], translit: 'âmadan', grammar: '', exampleFa: '', exampleDe: '', notes: '', lessonId: 'L1', priority: 5, tags: [], createdAt: 1, updatedAt: 1, lastReviewAt: 0, status: 'neu', problem: 0, sample: 0 });
-      tx.oncomplete = () => { d.close(); resolve(); };
-      tx.onerror = () => reject(tx.error);
-    };
-  }));
-  await page.reload();
-  await page.goto('/#/stapel');
-  await expect(page.getByTestId('deck-tile')).toContainText('Persisch – Deutsch');
-  await page.getByTestId('deck-tile').click();
-  await expect(page.getByTestId('lesson-row').first()).toContainText('Lektion 1');
-});
-
 test('works offline after the first load (service worker)', async ({ page, context }) => {
   await page.goto('/');
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });

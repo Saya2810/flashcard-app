@@ -5,7 +5,6 @@ import { Button, Card, Confirm, Page, Segmented, Stepper, toast } from '../compo
 import { Link } from 'react-router-dom';
 import { backupFileName, createBackup, exportCsv, restoreBackup, validateBackup, type BackupCheck } from '../db/backup';
 import { db, requestPersistence } from '../db/db';
-import { convertLegacy, importConverted, readLegacyDb } from '../db/legacy';
 import { pruneMedia } from '../db/media';
 import { saveSettings } from '../db/repo';
 import { loadSampleData, removeSampleData } from '../db/sample';
@@ -47,14 +46,12 @@ export default function SettingsPage() {
   const set = (patch: Partial<AppSettings>) => void saveSettings(patch);
   const sampleCount = useLiveQuery(async () => (await db.decks.where('sample').equals(1).count()) + (await db.cards.where('sample').equals(1).count()), [], 0);
   const [persisted, setPersisted] = useState<boolean | null>(null);
-  const [legacy, setLegacy] = useState<number | null>(null);
   const [check, setCheck] = useState<BackupCheck | null>(null);
   const [confirmReplace, setConfirmReplace] = useState(false);
   const [confirmSample, setConfirmSample] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { void navigator.storage?.persisted?.().then(setPersisted).catch(() => setPersisted(null)); }, []);
-  useEffect(() => { void readLegacyDb().then((d) => setLegacy(d?.vocab.length ?? 0)); }, []);
 
   const backup = async () => {
     await saveFile(backupFileName('json'), 'application/json', JSON.stringify(await createBackup()));
@@ -149,7 +146,6 @@ export default function SettingsPage() {
             <Button variant="soft" className="w-full" onClick={async () => { await saveFile(backupFileName('csv'), 'text/csv', await exportCsv()); toast(t('CSV exportiert')); }} data-testid="export-csv">{t('Alle Karten als CSV exportieren')}</Button>
             <input ref={fileRef} type="file" accept=".json,application/json" className="hidden" onChange={(e) => void onRestoreFile(e.target.files?.[0])} data-testid="restore-input" />
             <Button variant="soft" className="w-full" onClick={() => fileRef.current?.click()}>{t('Sicherung wiederherstellen …')}</Button>
-            <p className="text-xs text-muted">{t('Auch Sicherungen der früheren Persisch-Deutsch-App lassen sich hier einlesen.')}</p>
             <Button variant="ghost" size="sm" className="w-full" onClick={async () => toast(t('{n} ungenutzte Bilder entfernt', { n: await pruneMedia() }))}>{t('Ungenutzte Bilder aufräumen')}</Button>
           </Card>
         </section>
@@ -163,31 +159,15 @@ export default function SettingsPage() {
         </section>
 
         <section>
-          <h2 className="mb-2 px-1 text-sm font-semibold text-muted">{t('Persisch-Deutsch-Version')}</h2>
-          <Card className="space-y-3">
-            <p className="text-sm">{t('Die ursprüngliche Persisch-Deutsch-App ist weiter erreichbar. Ihre Daten werden beim ersten Start automatisch als Stapel „Persisch – Deutsch“ übernommen, ohne das Original zu verändern.')}</p>
-            {legacy !== null && legacy > 0 && (
-              <Button variant="soft" className="w-full" data-testid="import-legacy" onClick={async () => {
-                const data = await readLegacyDb();
-                if (!data) return;
-                const r = await importConverted(convertLegacy(data), { first: false });
-                toast(r.added ? t('{n} neue Vokabeln übernommen', { n: r.added }) : t('Alles ist schon übernommen'));
-              }}>{t('Erneut aus der Persisch-Version übernehmen ({n} Vokabeln)', { n: legacy })}</Button>
-            )}
-            <a href="./legacy/" className="block text-center text-sm font-semibold text-accent">{t('Ursprüngliche Version öffnen')}</a>
-          </Card>
-        </section>
-
-        <section>
           <h2 className="mb-2 px-1 text-sm font-semibold text-muted">{t('Beispiele')}</h2>
           <Card className="space-y-3">
-            <p className="text-sm">{sampleCount > 0 ? t('Beispielstapel sind geladen. Sie sind als „Beispiel“ markiert.') : t('Vier kleine Beispielstapel: Persisch, Analysis mit Formeln, Physik und Python-Code.')}</p>
+            <p className="text-sm">{sampleCount > 0 ? t('Beispielstapel sind geladen. Sie sind als „Beispiel“ markiert.') : t('Drei kleine Beispielstapel: Analysis mit Formeln, Physik und Python-Code.')}</p>
             {sampleCount > 0
               ? <Button variant="danger" className="w-full" onClick={() => setConfirmSample(true)} data-testid="remove-sample">{t('Beispiele entfernen')}</Button>
               : <Button variant="soft" className="w-full" onClick={async () => { toast(t('{n} Beispielkarten geladen', { n: await loadSampleData() })); }} data-testid="load-sample">{t('Beispiele laden')}</Button>}
           </Card>
         </section>
-        <p className="px-1 text-center text-xs text-muted">{t('Generalised Flashcards – kostenlos, ohne Konto, ohne Werbung. Funktioniert offline.')}</p>
+        <p className="px-1 text-center text-xs text-muted">{t('Flashcards – kostenlos, ohne Konto, ohne Werbung. Funktioniert offline.')}</p>
       </div>
 
       <Confirm open={!!check && !check.ok} title={t('Sicherung nicht lesbar')} confirmLabel={t('Verstanden')} onConfirm={() => setCheck(null)} onCancel={() => setCheck(null)}
@@ -196,7 +176,7 @@ export default function SettingsPage() {
       <Confirm open={!!check?.ok && !confirmReplace} title={t('Sicherung wiederherstellen')} confirmLabel={t('Zusammenführen')} onConfirm={() => void restore('merge')} onCancel={() => setCheck(null)}
         text={check?.summary && <>
           <p data-testid="restore-summary">
-            {check.kind === 'legacy' ? t('Sicherung der Persisch-Deutsch-App: ') : t('Die Datei enthält ')}
+            {t('Die Datei enthält ')}
             {check.summary.cards} {plural(check.summary.cards, 'Karte', 'Karten')} {t('in')} {check.summary.decks} {plural(check.summary.decks, 'Stapel', 'Stapeln')}
             {check.summary.verbs > 0 ? `, ${check.summary.verbs} ${plural(check.summary.verbs, 'Verb', 'Verben')}` : ''} {t('und')} {check.summary.reviews} {t('Antworten')}
             {check.summary.exportedAt ? ` (${t('erstellt am {d}', { d: formatDate(Date.parse(check.summary.exportedAt)) })})` : ''}.

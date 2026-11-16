@@ -10,27 +10,6 @@ interface SampleDeck { deck: DeckInput; cards: SampleCard[] }
 const SAMPLES: SampleDeck[] = [
   {
     deck: {
-      name: 'Beispiel: Persisch – Deutsch', subject: 'Sprachen', color: 'rose', reverse: true, rich: false,
-      description: 'Vokabeln mit Umschrift und Beispielsatz',
-      front: { label: 'Persisch', lang: 'fa', dir: 'rtl', font: 'vazirmatn', scale: 1.1 },
-      back: { label: 'Deutsch', lang: 'de', dir: 'ltr', font: 'system', weight: 700 },
-      fields: [
-        { key: 'umschrift', label: 'Umschrift', dir: 'ltr', font: 'system' },
-        { key: 'beispiel', label: 'Beispiel', dir: 'rtl', font: 'vazirmatn' },
-      ],
-    },
-    cards: [
-      { lesson: 'Verben', front: 'آمدن', back: 'kommen', altBack: ['ankommen'], fields: { umschrift: 'âmadan', beispiel: 'من به خانه می‌آیم.' }, priority: 5 },
-      { lesson: 'Verben', front: 'رفتن', back: 'gehen', altBack: ['fahren'], fields: { umschrift: 'raftan', beispiel: 'او به دانشگاه می‌رود.' }, priority: 5 },
-      { lesson: 'Verben', front: 'خواندن', back: 'lesen', altBack: ['singen'], fields: { umschrift: 'xândan' }, priority: 3 },
-      { lesson: 'Verben', front: 'نوشتن', back: 'schreiben', fields: { umschrift: 'neveštan' }, priority: 3 },
-      { lesson: 'Alltag', front: 'سلام', back: 'Hallo', fields: { umschrift: 'salâm' }, priority: 3 },
-      { lesson: 'Alltag', front: 'کتاب', back: 'Buch', fields: { umschrift: 'ketâb', beispiel: 'این کتاب خوب است.' }, priority: 3 },
-      { lesson: 'Alltag', front: 'دانشگاه', back: 'Universität', fields: { umschrift: 'dânešgâh' }, priority: 4 },
-    ],
-  },
-  {
-    deck: {
       name: 'Beispiel: Analysis', subject: 'Mathematik', color: 'lavender', rich: true,
       description: 'Definitionen und Sätze mit Formeln',
       front: { label: 'Begriff', font: 'rounded', scale: 1 },

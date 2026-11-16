@@ -1,5 +1,5 @@
 {
-  "name": "generalised-flashcards",
+  "name": "flashcards",
   "private": true,
   "version": "2.0.0",
   "description": "Free, offline-first flashcard PWA for any subject: spaced repetition (FSRS), Markdown/LaTeX/code/images, RTL scripts, typed-answer diff, CSV import and full backups",
