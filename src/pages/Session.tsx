@@ -175,7 +175,7 @@ export default function Session() {
       <footer className="safe-bottom space-y-3 px-4 pt-2">
         {typing && !flipped && answerSide && (
           <label className="block">
-            <span className="mb-1 block text-xs font-semibold text-muted">Deine Antwort ({answerSide.label})</span>
+            <span className="mb-1 block text-xs font-semibold text-muted">{t('Deine Antwort')} ({answerSide.label})</span>
             <textarea ref={inputRef} rows={2} value={typed} onChange={(e) => setTyped(e.target.value)} data-testid="typed-input"
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); setFlipped(true); } }}
               dir={answerSide.dir} lang={answerSide.lang || undefined} autoCapitalize="off" autoCorrect="off" spellCheck={false}
