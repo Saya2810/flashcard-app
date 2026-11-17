@@ -12,8 +12,8 @@ export default {
       },
       borderRadius: { card: '1.5rem' },
       boxShadow: {
-        card: '0 1px 2px rgb(110 40 80 / 0.05), 0 10px 30px -14px rgb(150 50 100 / 0.22)',
-        lift: '0 2px 4px rgb(110 40 80 / 0.06), 0 22px 44px -18px rgb(150 50 100 / 0.32)',
+        card: '0 1px 2px rgb(var(--shadow) / 0.05), 0 10px 30px -14px rgb(var(--shadow) / 0.22)',
+        lift: '0 2px 4px rgb(var(--shadow) / 0.06), 0 22px 44px -18px rgb(var(--shadow) / 0.32)',
       },
     },
   },

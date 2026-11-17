@@ -225,6 +225,8 @@ export interface AppSettings {
   uiLanguage: string;
   /** App interface font. */
   uiFont: 'system' | 'rounded' | 'serif';
+  /** Colour scheme of the interface (palette in src/index.css, `data-color` on <html>). */
+  colorTheme: ColorTheme;
   defaultDirection: DirectionChoice;
   dailyGoal: number;
   newPerDay: number;
@@ -243,11 +245,23 @@ export interface AppSettings {
   lastBackupAt: number;
 }
 
+/** Interface colour schemes. `swatch` is the light-mode accent, shown in the picker. */
+export const COLOR_THEMES = [
+  { key: 'rose', label: 'Rosa', swatch: '#C44074' },
+  { key: 'ocean', label: 'Blau', swatch: '#2563AF' },
+  { key: 'forest', label: 'Grün', swatch: '#228054' },
+  { key: 'violet', label: 'Lila', swatch: '#684CC4' },
+  { key: 'sand', label: 'Sand', swatch: '#C26624' },
+  { key: 'graphite', label: 'Grau', swatch: '#3C424E' },
+] as const;
+export type ColorTheme = (typeof COLOR_THEMES)[number]['key'];
+
 export const DEFAULT_SETTINGS: AppSettings = {
   key: 'app',
   theme: 'system',
   uiLanguage: 'de',
   uiFont: 'rounded',
+  colorTheme: 'rose',
   defaultDirection: 'fwd',
   dailyGoal: 20,
   newPerDay: 15,

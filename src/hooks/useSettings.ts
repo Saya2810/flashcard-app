@@ -18,14 +18,18 @@ export function useApplySettings(s: AppSettings) {
   useEffect(() => {
     const mq = typeof window.matchMedia === 'function' ? window.matchMedia('(prefers-color-scheme: dark)') : null;
     const apply = () => {
+      const root = document.documentElement;
       const dark = s.theme === 'dark' || (s.theme === 'system' && !!mq?.matches);
-      document.documentElement.classList.toggle('dark', dark);
-      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#1A1117' : '#FCF1F5');
+      root.classList.toggle('dark', dark);
+      root.dataset.color = s.colorTheme ?? 'rose';
+      // Status bar colour follows the current background of the chosen scheme.
+      const bg = getComputedStyle(root).getPropertyValue('--bg').trim().split(/\s+/).join(', ');
+      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bg ? `rgb(${bg})` : dark ? '#1A1117' : '#FCF1F5');
     };
     apply();
     mq?.addEventListener('change', apply);
     return () => mq?.removeEventListener('change', apply);
-  }, [s.theme]);
+  }, [s.theme, s.colorTheme]);
   useEffect(() => {
     document.documentElement.style.setProperty('--card-scale', String(s.cardFontScale));
   }, [s.cardFontScale]);

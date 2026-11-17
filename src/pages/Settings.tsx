@@ -11,7 +11,7 @@ import { loadSampleData, removeSampleData } from '../db/sample';
 import { useSettings } from '../hooks/useSettings';
 import { saveFile } from '../lib/csv';
 import { formatDate } from '../lib/dates';
-import type { AppSettings } from '../types';
+import { COLOR_THEMES, type AppSettings } from '../types';
 import { DIRECTION_OPTIONS } from './shared';
 import { LANGUAGES, plural, t } from '../i18n';
 
@@ -81,6 +81,20 @@ export default function SettingsPage() {
           </Row>
           <Row title={t('Erscheinungsbild')} stack>
             <Segmented label={t('Erscheinungsbild')} value={s.theme} onChange={(theme) => set({ theme })} options={[{ value: 'system', label: 'Automatisch' }, { value: 'light', label: 'Hell' }, { value: 'dark', label: 'Dunkel' }]} />
+          </Row>
+          <Row title={t('Farbe der App')} stack>
+            <div role="radiogroup" aria-label={t('Farbe der App')} className="grid grid-cols-6 gap-1" data-testid="color-theme">
+              {COLOR_THEMES.map((c) => {
+                const on = (s.colorTheme ?? 'rose') === c.key;
+                return (
+                  <button key={c.key} type="button" role="radio" aria-checked={on} aria-label={t(c.label)} onClick={() => set({ colorTheme: c.key })}
+                    className="flex min-w-0 flex-col items-center gap-1.5 text-xs">
+                    <span className={`grid h-9 w-9 place-items-center rounded-full ring-offset-2 ring-offset-surface ${on ? 'ring-2 ring-ink' : ''}`} style={{ background: c.swatch }} />
+                    <span className={on ? 'font-semibold text-ink' : 'text-muted'}>{t(c.label)}</span>
+                  </button>
+                );
+              })}
+            </div>
           </Row>
         </Section>
 

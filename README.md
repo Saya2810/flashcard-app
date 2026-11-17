@@ -12,6 +12,7 @@ Use it for vocabulary, formulas, definitions, code or anything else you want to 
   <img src="docs/screenshots/dark.png" width="180" alt="Dark mode">
   <img src="docs/screenshots/modes.png" width="180" alt="All study modes">
   <img src="docs/screenshots/stats.png" width="180" alt="Statistics">
+  <img src="docs/screenshots/settings.png" width="180" alt="Settings">
 </p>
 
 **Web app:** https://saya2810.github.io/flashcard-app/
@@ -57,6 +58,7 @@ Use it for vocabulary, formulas, definitions, code or anything else you want to 
 **Other**
 - German and English interface
 - Light and dark mode
+- Six colour schemes: pink, blue, green, purple, sand, grey
 - Works offline, all data stored on the device
 
 ## Backups

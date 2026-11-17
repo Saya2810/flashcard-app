@@ -636,4 +636,10 @@ export const en: Record<string, string> = {
   "Datum": "Date",
   "Übung starten": "Start practice",
   "Zugehöriger Stapel": "Deck",
+  "Farbe der App": "App colour",
+  "Blau": "Blue",
+  "Grün": "Green",
+  "Lila": "Purple",
+  "Sand": "Sand",
+  "Grau": "Grey",
 };

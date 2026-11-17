@@ -37,6 +37,7 @@
   --c-sicher: #6E2149;
   --ui-font: ui-rounded, 'SF Pro Rounded', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --card-scale: 1;
+  --shadow: 150 50 100;
   color-scheme: light;
 }
 .dark {
@@ -66,7 +67,61 @@
   --c-bearbeitung: #8E4A6C;
   --c-gut: #E07AA6;
   --c-sicher: #F7C6DC;
+  --shadow: 0 0 0;
   color-scheme: dark;
+}
+
+/* Alternative colour schemes (setting „Farbe der App“). Rose is the default above.
+   Only the tinted neutrals, the accent and the status chart colours change; ok/bad stay the same. */
+[data-color='ocean'] {
+  --bg: 239 245 251; --sunken: 222 234 246; --line: 205 220 236; --ink: 26 40 58; --muted: 82 100 122;
+  --accent: 37 99 175; --accent-soft: 214 230 249; --on-accent: 255 255 255; --shadow: 40 80 140;
+  --c-neu: #C3D0DE; --c-bearbeitung: #93B7E0; --c-gut: #2563AF; --c-sicher: #173E6E;
+}
+.dark[data-color='ocean'] {
+  --bg: 14 20 28; --surface: 24 32 44; --sunken: 34 44 58; --line: 50 62 80; --ink: 230 238 247; --muted: 150 168 190;
+  --accent: 126 178 240; --accent-soft: 30 50 78; --on-accent: 10 24 44; --shadow: 0 0 0;
+  --c-neu: #3E4C5E; --c-bearbeitung: #3F6896; --c-gut: #7EB2F0; --c-sicher: #CFE2F8;
+}
+[data-color='forest'] {
+  --bg: 240 247 242; --sunken: 223 238 228; --line: 205 225 212; --ink: 28 46 36; --muted: 84 106 92;
+  --accent: 34 128 84; --accent-soft: 213 238 223; --on-accent: 255 255 255; --shadow: 40 110 70;
+  --c-neu: #C6D6CB; --c-bearbeitung: #93CBA8; --c-gut: #228054; --c-sicher: #134A31;
+}
+.dark[data-color='forest'] {
+  --bg: 14 24 18; --surface: 24 38 30; --sunken: 34 50 40; --line: 50 70 58; --ink: 230 244 236; --muted: 150 180 162;
+  --accent: 120 210 160; --accent-soft: 30 62 46; --on-accent: 10 36 22; --shadow: 0 0 0;
+  --c-neu: #3E5246; --c-bearbeitung: #3F7A58; --c-gut: #78D2A0; --c-sicher: #D0F0DE;
+}
+[data-color='violet'] {
+  --bg: 245 242 252; --sunken: 232 226 248; --line: 218 210 238; --ink: 42 34 66; --muted: 98 90 126;
+  --accent: 104 76 196; --accent-soft: 228 220 252; --on-accent: 255 255 255; --shadow: 90 60 170;
+  --c-neu: #D0C8E4; --c-bearbeitung: #B2A1E6; --c-gut: #684CC4; --c-sicher: #3A2A78;
+}
+.dark[data-color='violet'] {
+  --bg: 20 17 30; --surface: 32 28 46; --sunken: 44 38 62; --line: 62 56 84; --ink: 238 234 250; --muted: 170 162 196;
+  --accent: 182 164 250; --accent-soft: 54 44 90; --on-accent: 30 20 60; --shadow: 0 0 0;
+  --c-neu: #4A4460; --c-bearbeitung: #6A58A8; --c-gut: #B6A4FA; --c-sicher: #E4DCFE;
+}
+[data-color='sand'] {
+  --bg: 250 245 238; --sunken: 242 232 218; --line: 232 218 200; --ink: 58 42 28; --muted: 112 94 76;
+  --accent: 176 88 26; --accent-soft: 250 228 206; --on-accent: 255 255 255; --shadow: 150 90 40;
+  --c-neu: #DDD0C0; --c-bearbeitung: #E8B98E; --c-gut: #B0581A; --c-sicher: #6E3A14;
+}
+.dark[data-color='sand'] {
+  --bg: 26 20 14; --surface: 40 32 24; --sunken: 54 44 34; --line: 74 62 48; --ink: 248 238 226; --muted: 196 176 154;
+  --accent: 244 170 110; --accent-soft: 76 52 30; --on-accent: 50 26 8; --shadow: 0 0 0;
+  --c-neu: #5A4C3E; --c-bearbeitung: #8E623C; --c-gut: #F4AA6E; --c-sicher: #F8DEC4;
+}
+[data-color='graphite'] {
+  --bg: 244 245 247; --sunken: 230 232 236; --line: 216 219 225; --ink: 30 34 40; --muted: 96 102 112;
+  --accent: 60 66 78; --accent-soft: 224 227 233; --on-accent: 255 255 255; --shadow: 40 44 52;
+  --c-neu: #CDD1D8; --c-bearbeitung: #A4ACB8; --c-gut: #3C424E; --c-sicher: #15181E;
+}
+.dark[data-color='graphite'] {
+  --bg: 18 19 22; --surface: 30 32 36; --sunken: 42 44 50; --line: 60 63 70; --ink: 236 238 242; --muted: 164 168 178;
+  --accent: 200 206 216; --accent-soft: 52 56 64; --on-accent: 20 22 26; --shadow: 0 0 0;
+  --c-neu: #4A4E56; --c-bearbeitung: #6E7480; --c-gut: #C8CED8; --c-sicher: #F0F2F5;
 }
 
 html { -webkit-text-size-adjust: 100%; }
